@@ -24,13 +24,14 @@ async function getData() {
     const docRef = doc(db, 'projects', projectId);
     const docSnap = await getDoc(docRef);
 
-    projectsLoaded.value = true;
+    dataLoaded.value = true;
 
     if (docSnap.exists()) {
         const data = docSnap.data();
         projectData.value = docSnap.data() || {};
     }
 }
+getData();
 </script>
 
 
@@ -38,14 +39,14 @@ async function getData() {
     <AdminHeader></AdminHeader>
 
     <main>
-        <router-view></router-view>
+        <router-view :project="projectData" :key="dataLoaded"></router-view>
     </main>
 </template>
 
 
 <style scoped>
 main {
-    width: 70vw;
+    width: 100%;
     margin: 3.6rem auto 0 auto;
 }
 </style>
