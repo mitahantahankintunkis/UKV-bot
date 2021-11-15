@@ -12,22 +12,22 @@ const user = getUser();
     <header>
         <div>
             <ul>
-                <li><a href="/logout">{{ route.params.project }}</a></li>
+                <li><router-link to="/admin">{{ route.params.project }}</router-link></li>
             </ul>
         </div>
 
         <div>
             <ul>
-                <li><a href="#">Hallinta</a></li>
-                <li><a href="#">Sivusto</a></li>
-                <li><a href="#">Botti</a></li>
-                <li><a href="#">Tilastotieto</a></li>
+                <li><router-link to="./">Hallinta</router-link></li>
+                <li><router-link to="./site">Sivusto</router-link></li>
+                <li><router-link to="./bot">Botti</router-link></li>
+                <li><router-link to="./analytics">Tilastotieto</router-link></li>
             </ul>
         </div>
 
         <div>
             <ul>
-                <li><a href="/logout">Kirjaudu ulos</a></li>
+                <li><router-link to="/logout">Kirjaudu ulos</router-link></li>
             </ul>
         </div>
     </header>
@@ -71,9 +71,17 @@ ul {
 a {
     text-transform: uppercase;
     font-weight: 600;
-    color: #ccc;
+    color: #888;
     text-decoration: none;
     line-height: 3.6rem;
+}
+
+a:hover {
+    color: #ddd;
+}
+
+.router-link-exact-active {
+    color: #ccc;
 }
 
 </style>

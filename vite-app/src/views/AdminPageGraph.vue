@@ -35,10 +35,8 @@ async function getData() {
 
 
 <template>
-    <AdminHeader></AdminHeader>
-
     <main>
-        <router-view></router-view>
+        <h1>TODO</h1>
     </main>
 </template>
 

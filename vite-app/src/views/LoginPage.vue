@@ -33,7 +33,6 @@ function login(e) {
     <main>
         <div class="cont">
             <h2>Kirjaudu sisään</h2>
-            <a href="/admin/muuvo">test</a>
             <form @submit="login">
                 <input name="email" id="email" type="text" placeholder="Sähköposti" required>
                 <input name="pwd" id="pwd" type="password" placeholder="Salasana" required>

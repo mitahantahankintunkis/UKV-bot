@@ -12,6 +12,12 @@ const routes = [
         meta: {
             loginRequired: true
         },
+        children: [
+            { path: '',          component: () => import('../views/AdminPageGeneral.vue') },
+            { path: 'site',      component: () => import('../views/AdminPageEditor.vue') },
+            { path: 'bot',       component: () => import('../views/AdminPageGraph.vue') },
+            { path: 'analytics', component: () => import('../views/AdminPageAnalytics.vue') },
+        ],
     },
     {
         path: '/admin',

@@ -56,7 +56,7 @@ function createProject() {
             <h3 v-if="!projectsLoaded">Ladataan...</h3>
             <ul v-else>
                 <li v-for="p in projects" :key="p">
-                    <a :href="`/admin/${projectNameToId(p)}`">{{ p }}</a>
+                    <router-link :to="`/admin/${projectNameToId(p)}/`">{{ p }}</router-link>
                 </li>
             </ul>
 
@@ -129,4 +129,5 @@ ul {
 .projectlink {
     cursor: pointer;
 }
+
 </style>

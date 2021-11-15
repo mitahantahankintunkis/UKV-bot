@@ -2,29 +2,20 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { ref } from '@vue/reactivity';
+import Markdown from '../components/Markdown.vue';
 
 
-const markdownStart = 
+const markdown = ref(
 `# Esimerkki markdownin syntaksista
 ## Alaotsikko
 ### Alempi otsikko
 - Lista
 - Linkki [nimi](example.com)
-- Kuva ![kuvaus jos ei lataudu](https://i.imgur.com/4vNedV6.jpeg)`;
-
-const cleanedHtml = ref('');
-
-function parseMarkdown(markdown) {
-    const html = marked(markdown || '');
-    cleanedHtml.value = DOMPurify.sanitize(html);
-    console.log(cleanedHtml.value);
-}
+- Kuva ![kuvaus jos ei lataudu](https://i.imgur.com/4vNedV6.jpeg)`);
 
 function textChanged(e) {
-    parseMarkdown(e.target.value);
+    markdown.value = e.target.value;
 }
-
-parseMarkdown(markdownStart);
 </script>
 
 
@@ -32,11 +23,12 @@ parseMarkdown(markdownStart);
     <div class="content">
         <div class="left">
             <div>Tekstin sisältö</div>
-            <textarea @input="textChanged" autocomplete="off" autocorrect="off" spellcheck="false" v-model="markdownStart"></textarea>
+            <textarea @input="textChanged" autocomplete="off" autocorrect="off" spellcheck="false" v-model="markdown"></textarea>
         </div>
         <div class="right">
             <div>Sivuston näkymä</div>
-            <div class="rendered" v-html="cleanedHtml">
+            <div class="rendered">
+                <Markdown :key="markdown" :markdown="markdown"></Markdown>
             </div>
         </div>
     </div>
@@ -65,10 +57,5 @@ textarea {
 .rendered {
     height: 100%;
     overflow-y: auto;
-}
-
-.rendered:deep(img) {
-    width: 70%;
-    height: auto;
 }
 </style>
