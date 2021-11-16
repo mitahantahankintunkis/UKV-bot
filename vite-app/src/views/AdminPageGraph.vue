@@ -8,27 +8,16 @@ import { onBeforeUnmount, onMounted, ref } from '@vue/runtime-core';
 const props = defineProps([ 'project' ]);
 const controls = ref('cursor');
 
-//const nodes = props.project['bot-nodes'] || [];
-//const edges = props.project['bot-edges'] || [];
-
 const nodes = [
-    { id: 'asdf', pos: { x: 0, y:  1 }, label: '# TODO\nBot editor example\n## List\n- Linkki [muuvo.fi](https://muuvo.fi)\n- Markdown tukee myös kuvia\n![img](https://i.imgur.com/4vNedV6.jpeg)' },
-    { id: 'qwer', pos: { x: 6, y: 15 }, label: 'Lorem ipsum dolor sit amet.' },
+    { id: 'asdf', pos: { x: 0, y:  1 }, owner:  'bot', label: '# TODO\nBot editor example\n## List\n- Linkki [muuvo.fi](https://muuvo.fi)\n- Markdown tukee myös kuvia\n![img](https://i.imgur.com/4vNedV6.jpeg)' },
+    { id: 'zxcv', pos: { x: 0, y: 10 }, owner: 'user', label: 'Lorem ipsum' },
+    { id: 'qwer', pos: { x: 6, y: 15 }, owner:  'bot', label: 'Lorem ipsum dolor sit amet.' },
 ];
+
 const edges = [
-    { id: 'zxcv', pos: { x: 0, y: 10 }, label: 'Lorem ipsum', from: 'asdf', to: 'qwer' },
+    { from: 'asdf', to: 'zxcv' },
+    { from: 'zxcv', to: 'qwer' },
 ];
-
-// Parses markdown
-for (let node of nodes) {
-    const html = marked(node.label || '');
-    node.cleanedHtml = DOMPurify.sanitize(html);
-}
-
-for (let edge of edges) {
-    const html = marked(edge.label || '');
-    edge.cleanedHtml = DOMPurify.sanitize(html);
-}
 
 const prevTransform = ref(
     JSON.parse(localStorage.getItem('treeview-transform')) ||
@@ -80,13 +69,16 @@ onMounted(() => {
                 .translate(prevTransform.value.x, prevTransform.value.y)
                 .scale(prevTransform.value.k))
         .on("dblclick.zoom", null);
+    
+    container.on('click', function(e) {
+        switch (controls.value) {
+            case '':
+                break;
 
-    // Mouse events
-    //container
-    //    .on('click', function(e) {
-    //        console.log(e, d3.select(this));
-    //    })
-    //    .on('contextmenu', console.log)
+            default:
+                break;
+        }
+    });
 
     // Bubbles
     // Chat bubble max width is 70% of 30rem -> 336px
@@ -94,10 +86,8 @@ onMounted(() => {
     const width = 4;
 
     // Containers for different elements
-    const botBubbles = domContent.append('div');
-    const userBubbles = domContent.append('div');
-    const incomingLines = content.append('g');
-    const outgoingLines = content.append('g');
+    const bubbleCont = domContent.append('div');
+    const lineCont = content.append('g');
 
     // Handles bubble element dragging
     function bubbleDrag(bubbles) {
@@ -144,102 +134,75 @@ onMounted(() => {
 
     // Redraws bubbles and lines
     function redraw() {
+        // Sets bubble positions and inner HTML.
+        // Calculates the height of each bubble.
+        function bubbleUpdate(selection) {
+            selection
+                .style('transform', (d) => `translate(${d.pos.x * size}px, ${d.pos.y * size}px)`)
+                .html((d) => {
+                    const html = marked(d.label || '');
+                    return DOMPurify.sanitize(html);
+                })
+                .each(function(d) { d.height = d3.select(this).node().scrollHeight });
+        }
+
+        function lineUpdate(selection) {
+            selection
+                .attr('x1', (d) => {
+                    const node = nodes.find((n) => n.id === d.from);
+                    return node.pos.x * size + (width / 2) * size;
+                })
+                .attr('y1', (d) => {
+                    const node = nodes.find((n) => n.id === d.from);
+                    return node.pos.y * size + node.height;
+                })
+                .attr('x2', (d) => {
+                    const node = nodes.find((n) => n.id === d.to);
+                    return node.pos.x * size + (width / 2) * size;
+                })
+                .attr('y2', (d) => {
+                    const node = nodes.find((n) => n.id === d.to);
+                    return node.pos.y * size;
+                });
+        }
 
         // Adds, updates, and removes bubbles
-        function updateBubbles(cont, data, isBot) {
-            cont
-                .selectAll('div')
-                .data(data, (d) => d.id)
-                .join(
-                    function (enter) {
-                        enter.append('div')
-                            .call(bubbleDrag)
-                            .call(bubbleEvents)
-                            .attr('class', 'bubble')
-                            .classed('bot-bubble', isBot)
-                            .classed('user-bubble', !isBot)
-                            .style('transform', (d) => `translate(${d.pos.x * size}px, ${d.pos.y * size}px)`)
-                            .html((d) => d.cleanedHtml)
-                            .each(function(d) { d.height = d3.select(this).node().scrollHeight });
-                    },
+        bubbleCont
+            .selectAll('div')
+            .data(nodes, (d) => d.id)
+            .join(
+                function (enter) {
+                    enter.append('div')
+                        .call(bubbleDrag)
+                        .call(bubbleEvents)
+                        .attr('class', (d) => `bubble ${d.owner}-bubble`)
+                        .call(bubbleUpdate);
+                },
 
-                    // Sets bubble positions and inner HTML.
-                    // Calculates the height of each bubble.
-                    function (update) {
-                        update
-                            .style('transform', (d) => `translate(${d.pos.x * size}px, ${d.pos.y * size}px)`)
-                            .html((d) => d.cleanedHtml)
-                            .each(function(d) { d.height = d3.select(this).node().scrollHeight });
-                    },
+                bubbleUpdate,
 
-                    function (exit) {
-                        d3.select(this).remove();
-                        //exit.remove();
-                    });
-        }
+                function (exit) {
+                    d3.select(this).remove();
+                });
 
-        // Each edge needs two lines, one incoming and one
-        // outgoing line from each user bubble
-        function updateLines(cont, incoming) {
-            // Returns line coordinates
-            const coordinates = (d) => {
-                let node;
-                let p0;
-                let p1;
+        lineCont
+            .selectAll('line')
+            .data(edges, (d) => `${d.from}-${d.to}`)
+            .join(
+                function (enter) {
+                    enter.append('line')
+                        .attr('marker-end', 'url(#arrow)')
+                        .attr('stroke', '#444444')
+                        .attr('stroke-width', 8)
+                        .style('cursor', 'pointer')
+                        .call(lineUpdate);
+                },
 
-                if (incoming) {
-                    node = nodes.find((n) => n.id === d.from);
-                    p0 = node.pos;
-                    p1 = d.pos;
-                } else {
-                    node = nodes.find((n) => n.id === d.to);
-                    p0 = d.pos;
-                    p1 = node.pos;
-                }
+                lineUpdate,
 
-                return {
-                    x1: p0.x * size + (width / 2) * size,
-                    x2: p1.x * size + (width / 2) * size,
-                    y1: p0.y * size + node.height,
-                    y2: p1.y * size,
-                }
-            };
-
-            cont
-                .selectAll('line')
-                .data(edges, (d) => d.id)
-                .join(
-                    function (enter) {
-                        enter.append('line')
-                            .attr('marker-end', 'url(#arrow)')
-                            .attr('stroke', '#444444')
-                            .attr('stroke-width', 8)
-                            .style('cursor', 'pointer')
-                            .each((d) => { d.coords = coordinates(d); })
-                            .attr('x1', (d) => d.coords.x1)
-                            .attr('y1', (d) => d.coords.y1)
-                            .attr('x2', (d) => d.coords.x2)
-                            .attr('y2', (d) => d.coords.y2);
-                    },
-
-                    function (update) {
-                        update
-                            .each((d) => { d.coords = coordinates(d); })
-                            .attr('x1', (d) => d.coords.x1)
-                            .attr('y1', (d) => d.coords.y1)
-                            .attr('x2', (d) => d.coords.x2)
-                            .attr('y2', (d) => d.coords.y2);
-                    },
-
-                    function (exit) {
-                        d3.select(this).remove();
-                    })
-        }
-
-        updateBubbles(botBubbles,  nodes, true);
-        updateBubbles(userBubbles, edges, false);
-        updateLines(incomingLines, true);
-        updateLines(outgoingLines, false);
+                function (exit) {
+                    d3.select(this).remove();
+                });
     }
 
     redraw();
@@ -260,24 +223,6 @@ onMounted(() => {
                 <marker id="arrow" markerWidth="10" markerHeight="10" refX="3" refY="1.5" orient="auto" markerUnits="strokeWidth">
                     <path d="M0,0 L0,3 L4.5,1.5 z" fill="#444" />
                 </marker>
-
-                <filter id="shadow" x="0" y="0" width="200%" height="200%">
-                    <!--
-                    <feOffset result="offOut" in="SourceAlpha" dx="0" dy="0" />
-                    <feGaussianBlur result="blurOut" in="offOut" stdDeviation="10" />
-                    <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
-
-                    <feGaussianBlur id="blur" in="SourceAlpha" stdDeviation="1"/>
-                    <feColorMatrix id="recolor"  type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0" result="white-glow"/>
-
-                    <feMerge> 
-                        <feMergeNode in="white-glow"/> 
-                        <feMergeNode in="SourceGraphic"/> 
-                    </feMerge> 
-                    -->
-
-                    <feDropShadow dx="0" dy="0" stdDeviation="0.6" flood-color="white" />
-                </filter>
             </defs>
         
             <rect x="0" y="0" width="100%" height="100%" fill="url(#dots)"></rect>
@@ -378,6 +323,10 @@ svg, .graph {
     height: fit-content;
     color: #003a49;
     padding: 1rem;
+    background-color: #aaa;
+    border: 2px solid #999;
+    border-radius: 1rem;
+    text-align: center;
 }
 
 .graph:deep(.bot-bubble) {
