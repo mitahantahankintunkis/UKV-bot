@@ -6,16 +6,17 @@ import { onBeforeUnmount, onMounted, ref } from '@vue/runtime-core';
 
 
 const props = defineProps([ 'project' ]);
-const selected = ref(-1);
+const controls = ref('cursor');
+
 //const nodes = props.project['bot-nodes'] || [];
 //const edges = props.project['bot-edges'] || [];
 
 const nodes = [
-    { id: 'asdf', pos: { x: 0, y: 1 }, label: '# TODO\nBot editor example\n##List\n- Sup\n- Kuva ![img](https://i.imgur.com/4vNedV6.jpeg)' },
-    { id: 'qwer', pos: { x: 0, y: 5 }, label: 'Lorem ipsum dolor sit amet.' },
+    { id: 'asdf', pos: { x: 0, y:  1 }, label: '# TODO\nBot editor example\n## List\n- Linkki [muuvo.fi](https://muuvo.fi)\n- Markdown tukee myös kuvia\n![img](https://i.imgur.com/4vNedV6.jpeg)' },
+    { id: 'qwer', pos: { x: 6, y: 15 }, label: 'Lorem ipsum dolor sit amet.' },
 ];
 const edges = [
-    { id: 'zxcv', from: 'asdf', to: 'qwer', label: 'Edge' },
+    { id: 'zxcv', pos: { x: 0, y: 10 }, label: 'Lorem ipsum', from: 'asdf', to: 'qwer' },
 ];
 
 // Parses markdown
@@ -24,36 +25,39 @@ for (let node of nodes) {
     node.cleanedHtml = DOMPurify.sanitize(html);
 }
 
+for (let edge of edges) {
+    const html = marked(edge.label || '');
+    edge.cleanedHtml = DOMPurify.sanitize(html);
+}
+
 const prevTransform = ref(
-    //JSON.parse(localStorage.getItem('treeview-transform')) ||
+    JSON.parse(localStorage.getItem('treeview-transform')) ||
     { x: 0, y: 0, k: 1 }
 );
+
+function changeControls(id) {
+    controls.value = id;
+}
 
 onBeforeUnmount(function() {
     localStorage.setItem('treeview-transform', JSON.stringify(prevTransform.value));
 });
 
 onMounted(() => {
-    const svg = d3.select('svg');
+    const container = d3.select('.cont')
+    const svg = container.select('svg');
     const content = svg.select('g');
     const pattern = svg.select('pattern');
-    const domContent = d3.select('.graph').append('div');
+    const domContent = container.select('.graph').append('div');
 
-    // Initial transforms
+    // Initial transforms and container settings
     pattern.attr('patternTransform', `translate(${prevTransform.x} ${prevTransform.y}) scale(${prevTransform.k})`);
     domContent
+        .style('position', 'relative')
         .style('transform-origin', '0px 0px')
         .style('transform', `translate(${prevTransform.x}px,${prevTransform.y}px) scale(${prevTransform.k})`)
         .style('width', 'fit-content')
         .style('height', 'fit-content');
-    
-    content.append('rect')
-        .attr('x', 6 * 32)
-        .attr('y', 0)
-        .attr('width', 32)
-        .attr('height', 32)
-        .attr('rx', 4)
-        .attr('fill', '#ff4444')
 
     // Zooming and panning
     const zoom = d3.zoom()
@@ -67,127 +71,178 @@ onMounted(() => {
 
             content.attr('transform', t);
             domContent.style('transform', `translate(${t.x}px,${t.y}px) scale(${t.k})`)
-            pattern.attr('patternTransform', `translate(${t.x} ${t.y}) scale(${t.k})`)
-            //pattern.attr('patternTransform', t);
+            pattern.attr('patternTransform', t);
         });
 
-    svg.call(zoom)
+    container.call(zoom)
         .call(zoom.transform,
             d3.zoomIdentity
                 .translate(prevTransform.value.x, prevTransform.value.y)
                 .scale(prevTransform.value.k))
         .on("dblclick.zoom", null);
 
-    // Grabbing TODO
+    // Mouse events
+    //container
+    //    .on('click', function(e) {
+    //        console.log(e, d3.select(this));
+    //    })
+    //    .on('contextmenu', console.log)
 
-    // Lines
-    const size = 64;
+    // Bubbles
+    // Chat bubble max width is 70% of 30rem -> 336px
+    const size = 84;
     const width = 4;
-    const height = 1;
 
-    content.selectAll('line')
-        .data(edges)
-        .join('line')
-        .attr('x1', (d) => {
-            const node = nodes.find((n) => n.id === d.from);
-            return node.pos.x * size + (width / 2) * size;
-        })
-        .attr('y1', (d) => {
-            const node = nodes.find((n) => n.id === d.from);
-            return node.pos.y * size + height * size;
-        })
-        .attr('x2', (d) => {
-            const node = nodes.find((n) => n.id === d.to);
-            return node.pos.x * size + (width / 2) * size;
-        })
-        .attr('y2', (d) => {
-            const node = nodes.find((n) => n.id === d.to);
-            return node.pos.y * size;
-        })
-        .attr('stroke', '#444444')
-        .attr('stroke-width', 2)
+    // Containers for different elements
+    const botBubbles = domContent.append('div');
+    const userBubbles = domContent.append('div');
+    const incomingLines = content.append('g');
+    const outgoingLines = content.append('g');
 
-    // Nodes
-    //background-color: #8cc6d4;
-    //background-color: #b6d7df;
-    //border-radius: 1rem 1rem 1rem 0;
-    //max-width: 70%;
-    //width: max-content;
+    // Handles bubble element dragging
+    function bubbleDrag(bubbles) {
+        function drag(e, d) {
+            const selection = d3.select(this);
 
-    const messageBubbles = domContent
-        .selectAll('div')
-        .data(nodes)
-        .join('div')
-        .style('width', `${width * size}px`)
-        .style('height', `${height * size}px`)
-        .style('background-color', '#b6d7df')
-        .style('color', '#003a49')
-        .style('border-radius', '1rem 1rem 1rem 0')
-        .style('padding', '1rem')
-        .style('transform', (d) => `translate(${d.pos.x * size}px, ${d.pos.y * size}px)`);
+            // Screen to world
+            const x = (e.x / size) / prevTransform.value.k - width / 2;
+            const y = (e.y / size) / prevTransform.value.k - d.height / size / 2;
 
-    // Message as html
-    messageBubbles
-        .append('div')
-        .html((d) => d.cleanedHtml)
+            d.pos.x = Math.floor(x);
+            d.pos.y = Math.floor(y);
 
-        // Calculates the inner html height
-        .each(function(d, i) {
-            const element = d3.select(this);
-            const h = element.node().scrollHeight;
+            redraw();
+        }
 
-            d.height = Math.ceil(h / size) * size;
-            d.width = width * size;
-        });
+        bubbles.call(
+            d3.drag()
+                .filter((e) => { return true; })
+                .on('drag', drag)
+        );
+    }
 
-    messageBubbles
-        .style('height', (d) => `fit-content`);
-        //.style('height', (d) => `${d.height}px`);
+    function bubbleEvents(bubbles) {
+        function click(e, d) {
+            console.log(e, d);
+        }
 
-    //const foreignObjects = messages
-    //    .append('foreignObject')
-    //    .attr('x', (d) => d.pos.x * size)
-    //    .attr('y', (d) => d.pos.y * size)
-    //    .attr('width', width * size)
-    //    .attr('height', height * size)
-    //    .attr('position', 'absolute');
+        function dblclick(e, d) {
+            console.log(e, d);
+        }
 
-    //foreignObjects.append('xhtml:div')
-    //    .html((d) => d.cleanedHtml)
+        // Removes the clicked node
+        function contextmenu(e, d) {
+            e.preventDefault();
+            redraw();
+        }
 
-    //    // Calculates the inner html height
-    //    .each(function(d, i) {
-    //        const element = d3.select(this);
-    //        const h = element.node().scrollHeight;
+        bubbles
+            .on('click', click)
+            .on('dblclick', dblclick)
+            .on('contextmenu', contextmenu)
+    }
 
-    //        d.height = Math.ceil(h / size) * size;
-    //        d.width = width * size;
-    //    });
+    // Redraws bubbles and lines
+    function redraw() {
 
-    //// Sets the height according to the value calculated above
-    //foreignObjects.attr('height', (d) => d.height);
+        // Adds, updates, and removes bubbles
+        function updateBubbles(cont, data, isBot) {
+            cont
+                .selectAll('div')
+                .data(data, (d) => d.id)
+                .join(
+                    function (enter) {
+                        enter.append('div')
+                            .call(bubbleDrag)
+                            .call(bubbleEvents)
+                            .attr('class', 'bubble')
+                            .classed('bot-bubble', isBot)
+                            .classed('user-bubble', !isBot)
+                            .style('transform', (d) => `translate(${d.pos.x * size}px, ${d.pos.y * size}px)`)
+                            .html((d) => d.cleanedHtml)
+                            .each(function(d) { d.height = d3.select(this).node().scrollHeight });
+                    },
 
-    //messages.append('rect')
-    //    .attr('fill', 'white')
-    //    .attr('stroke', (d) => d.id === selected.value ? '#cc4444' : '#444444')
-    //    .attr('stroke-width', (d) => d.id === selected.value ? 2 : 1)
-    //    .attr('width', (d) => d.width)
-    //    .attr('height', (d) => d.height)
-    //    .attr('rx', 6)
-    //    .attr('x', (d) => d.pos.x * size)
-    //    .attr('y', (d) => d.pos.y * size)
-    //    .attr('cursor', 'pointer');
-    //    //.on('click', (e, d) => {
-    //    //    emit('selected', d.id);
-    //    //});
+                    // Sets bubble positions and inner HTML.
+                    // Calculates the height of each bubble.
+                    function (update) {
+                        update
+                            .style('transform', (d) => `translate(${d.pos.x * size}px, ${d.pos.y * size}px)`)
+                            .html((d) => d.cleanedHtml)
+                            .each(function(d) { d.height = d3.select(this).node().scrollHeight });
+                    },
 
-    //messages.append('text')
-    //    .attr('fill', 'black')
-    //    .attr('x', (d) => d.pos.x * size + size / 4)
-    //    .attr('y', (d) => d.pos.y * size + (height * size) / 2 + size / 16)
-    //    .attr('font-size', '7px')
-    //    .attr('pointer-events', 'none')
-    //    .text((d) => d.label.length > 30 ? `${d.label.substr(0, 30)}...` : d.label);
+                    function (exit) {
+                        d3.select(this).remove();
+                        //exit.remove();
+                    });
+        }
+
+        // Each edge needs two lines, one incoming and one
+        // outgoing line from each user bubble
+        function updateLines(cont, incoming) {
+            // Returns line coordinates
+            const coordinates = (d) => {
+                let node;
+                let p0;
+                let p1;
+
+                if (incoming) {
+                    node = nodes.find((n) => n.id === d.from);
+                    p0 = node.pos;
+                    p1 = d.pos;
+                } else {
+                    node = nodes.find((n) => n.id === d.to);
+                    p0 = d.pos;
+                    p1 = node.pos;
+                }
+
+                return {
+                    x1: p0.x * size + (width / 2) * size,
+                    x2: p1.x * size + (width / 2) * size,
+                    y1: p0.y * size + node.height,
+                    y2: p1.y * size,
+                }
+            };
+
+            cont
+                .selectAll('line')
+                .data(edges, (d) => d.id)
+                .join(
+                    function (enter) {
+                        enter.append('line')
+                            .attr('marker-end', 'url(#arrow)')
+                            .attr('stroke', '#444444')
+                            .attr('stroke-width', 8)
+                            .style('cursor', 'pointer')
+                            .each((d) => { d.coords = coordinates(d); })
+                            .attr('x1', (d) => d.coords.x1)
+                            .attr('y1', (d) => d.coords.y1)
+                            .attr('x2', (d) => d.coords.x2)
+                            .attr('y2', (d) => d.coords.y2);
+                    },
+
+                    function (update) {
+                        update
+                            .each((d) => { d.coords = coordinates(d); })
+                            .attr('x1', (d) => d.coords.x1)
+                            .attr('y1', (d) => d.coords.y1)
+                            .attr('x2', (d) => d.coords.x2)
+                            .attr('y2', (d) => d.coords.y2);
+                    },
+
+                    function (exit) {
+                        d3.select(this).remove();
+                    })
+        }
+
+        updateBubbles(botBubbles,  nodes, true);
+        updateBubbles(userBubbles, edges, false);
+        updateLines(incomingLines, true);
+        updateLines(outgoingLines, false);
+    }
+
+    redraw();
 });
 
 </script>
@@ -197,19 +252,57 @@ onMounted(() => {
     <div class="cont">
         <svg>
             <defs>
-                <pattern id="dots" x="-2" y="-2" width="64" height="64" patternUnits="userSpaceOnUse">
+                <pattern id="dots" x="-2" y="-2" width="84" height="84" patternUnits="userSpaceOnUse">
                     <circle fill="#ccc" cx="2" cy="2" r="2">
                     </circle>
                 </pattern>
+
+                <marker id="arrow" markerWidth="10" markerHeight="10" refX="3" refY="1.5" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,3 L4.5,1.5 z" fill="#444" />
+                </marker>
+
+                <filter id="shadow" x="0" y="0" width="200%" height="200%">
+                    <!--
+                    <feOffset result="offOut" in="SourceAlpha" dx="0" dy="0" />
+                    <feGaussianBlur result="blurOut" in="offOut" stdDeviation="10" />
+                    <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+
+                    <feGaussianBlur id="blur" in="SourceAlpha" stdDeviation="1"/>
+                    <feColorMatrix id="recolor"  type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0" result="white-glow"/>
+
+                    <feMerge> 
+                        <feMergeNode in="white-glow"/> 
+                        <feMergeNode in="SourceGraphic"/> 
+                    </feMerge> 
+                    -->
+
+                    <feDropShadow dx="0" dy="0" stdDeviation="0.6" flood-color="white" />
+                </filter>
             </defs>
         
             <rect x="0" y="0" width="100%" height="100%" fill="url(#dots)"></rect>
-
-                <g :transform="`translate(${prevTransform.x},${prevTransform.y}) scale(${prevTransform.k})`">
-                </g>
+            <g :transform="`translate(${prevTransform.x},${prevTransform.y}) scale(${prevTransform.k})`"></g>
         </svg>
 
         <div class="graph">
+        </div>
+    </div>
+
+    <div class="controls">
+        <div @click="changeControls('cursor')" :class="{ selected: controls === 'cursor' }">
+            C
+        </div>
+        <div @click="changeControls('bot')" :class="{ selected: controls === 'bot' }">
+            B
+        </div>
+        <div @click="changeControls('user')" :class="{ selected: controls === 'user' }">
+            U
+        </div>
+        <div @click="changeControls('edge')" :class="{ selected: controls === 'edge' }">
+            E
+        </div>
+        <div @click="changeControls('select')" :class="{ selected: controls === 'select' }">
+            S
         </div>
     </div>
 </template>
@@ -238,62 +331,66 @@ svg, .graph {
 .graph:deep(img) {
     width: 80%;
     height: auto;
+    margin: 0 auto;
 }
 
 .graph:deep(ul) {
     list-style-position: inside;
 }
+
+.controls {
+    position: absolute;
+    top: 3.6rem;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    margin: 1rem;
+    background-color: #eee;
+    gap: 1px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+.controls > * {
+    width: 3rem;
+    height: 3rem;
+    background-color: #eee;
+    text-align: center;
+    line-height: 3rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.controls > *:hover {
+    background-color: #fafafa;
+}
+
+.selected {
+    background-color: white;
+}
+
+.graph:deep(.bubble) {
+    pointer-events: auto;
+    cursor: pointer;
+    user-select: none;
+    position: absolute;
+    width: 336px;
+    height: fit-content;
+    color: #003a49;
+    padding: 1rem;
+}
+
+.graph:deep(.bot-bubble) {
+    background-color: #b6d7df;
+    border: 2px solid #a6c7cf;
+    border-radius: 1rem 1rem 1rem 0;
+    text-align: start;
+}
+
+.graph:deep(.user-bubble) {
+    background-color: #eee;
+    border: 2px solid #ddd;
+    border-radius: 1rem 1rem 0 1rem;
+    text-align: end;
+}
 </style>
-
-
-
-<!--
-    const messages = content.selectAll('g')
-        .data(nodes)
-        .join('g');
-
-    const foreignObjects = messages
-        .append('foreignObject')
-        .attr('x', (d) => d.pos.x * size)
-        .attr('y', (d) => d.pos.y * size)
-        .attr('width', width * size)
-        .attr('height', height * size)
-        .attr('position', 'absolute');
-
-    foreignObjects.append('xhtml:div')
-        .html((d) => d.cleanedHtml)
-
-        // Calculates the inner html height
-        .each(function(d, i) {
-            const element = d3.select(this);
-            const h = element.node().scrollHeight;
-
-            d.height = Math.ceil(h / size) * size;
-            d.width = width * size;
-        });
-
-    // Sets the height according to the value calculated above
-    foreignObjects.attr('height', (d) => d.height);
-
-    messages.append('rect')
-        .attr('fill', 'white')
-        .attr('stroke', (d) => d.id === selected.value ? '#cc4444' : '#444444')
-        .attr('stroke-width', (d) => d.id === selected.value ? 2 : 1)
-        .attr('width', (d) => d.width)
-        .attr('height', (d) => d.height)
-        .attr('rx', 6)
-        .attr('x', (d) => d.pos.x * size)
-        .attr('y', (d) => d.pos.y * size)
-        .attr('cursor', 'pointer');
-        //.on('click', (e, d) => {
-        //    emit('selected', d.id);
-        //});
-
-    //messages.append('text')
-    //    .attr('fill', 'black')
-    //    .attr('x', (d) => d.pos.x * size + size / 4)
-    //    .attr('y', (d) => d.pos.y * size + (height * size) / 2 + size / 16)
-    //    .attr('font-size', '7px')
-    //    .attr('pointer-events', 'none')
-    //    .text((d) => d.label.length > 30 ? `${d.label.substr(0, 30)}...` : d.label);
-    -->
