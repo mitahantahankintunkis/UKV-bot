@@ -1,0 +1,554 @@
+<script setup>
+import * as d3 from 'd3';
+import DOMPurify from 'dompurify';
+import NodePrompt from './NodePrompt.vue';
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from '@firebase/firestore';
+import { inject, onBeforeUnmount, onMounted, ref } from '@vue/runtime-core';
+import { marked } from 'marked';
+import { nanoid } from 'nanoid';
+import { useRoute } from 'vue-router';
+
+
+const route = useRoute();
+const db = inject('db');
+const props = defineProps([ 'project' ]);
+const promptNode = ref(null);
+
+let nodes = props.project.nodes || [];
+let edges = props.project.edges || [];
+
+const prevTransform = ref(
+    JSON.parse(localStorage.getItem('treeview-transform')) ||
+    { x: 0, y: 0, k: 1 }
+);
+
+// Redrawing function defined in onMounted
+let redraw;
+
+// Edits node data by prompting the user
+function promptSubmit(value) {
+    if (value) {
+        promptNode.value.label = value.label;
+        promptNode.value.class = value.class;
+    }
+
+    promptNode.value = null;
+    redraw();
+}
+
+
+async function uploadData() {
+    const projectId = route.params.project;
+    const docRef = doc(db, 'projects', projectId);
+
+    await updateDoc(docRef, {
+        nodes,
+        edges,
+        timestamp: serverTimestamp(),
+    });
+}
+
+
+async function downloadData() {
+    if (!db) return;
+
+    const projectId = route.params.project;
+    const docRef = doc(db, 'projects', projectId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        const project = docSnap.data() || {};
+
+        // Resets the graph
+        nodes = [];
+        edges = [];
+        redraw();
+
+        nodes = project.nodes || [];
+        edges = project.edges || [];
+        redraw();
+    }
+}
+
+
+// Loads from localStorage
+function loadGraph() {
+    try {
+        const graph = JSON.parse(localStorage.getItem('graph'));
+
+        if (graph) {
+            nodes = graph.nodes;
+            edges = graph.edges;
+            redraw();
+
+            localStorage.removeItem('graph');
+        }
+    } catch {
+        return;
+    }
+}
+
+
+// Saves state to localStorage
+function saveState() {
+    console.log('saved');
+
+    // Saves the current camera transformation
+    localStorage.setItem('treeview-transform', JSON.stringify(prevTransform.value));
+
+    if (nodes.length > 0) {
+        localStorage.setItem('graph', JSON.stringify({ nodes, edges }));
+    }
+}
+
+onBeforeUnmount(saveState);
+
+onMounted(() => {
+    console.log('remount');
+
+    const container = d3.select('.cont')
+    const svg = container.select('svg.graph-svg');
+    const content = svg.select('g');
+    const pattern = svg.select('pattern');
+    const domContent = container.select('.graph').append('div');
+
+    // Initial transforms and container settings
+    pattern.attr('patternTransform', `translate(${prevTransform.x} ${prevTransform.y}) scale(${prevTransform.k})`);
+    domContent
+        .style('position', 'relative')
+        .style('transform-origin', '0px 0px')
+        .style('transform', `translate(${prevTransform.x}px,${prevTransform.y}px) scale(${prevTransform.k})`)
+        .style('width', 'fit-content')
+        .style('height', 'fit-content');
+
+    // Zooming and panning
+    const zoom = d3.zoom()
+        .wheelDelta((e) => -e.deltaY * 0.001)
+        .scaleExtent([0.02, 2])
+        .filter((e) => !e.ctrlKey && !e.shiftKey)
+        .on('zoom', (event) => {
+            const t = event.transform;
+
+            prevTransform.value = { x: t.x, y: t.y, k: t.k };
+
+            content.attr('transform', t);
+            domContent.style('transform', `translate(${t.x}px,${t.y}px) scale(${t.k})`)
+            pattern.attr('patternTransform', t);
+        });
+
+    container.call(zoom)
+        .call(zoom.transform,
+            d3.zoomIdentity
+                .translate(prevTransform.value.x, prevTransform.value.y)
+                .scale(prevTransform.value.k))
+        .on("dblclick.zoom", null);
+
+
+    function addEdge(from, to) {
+        if (from === to) return;
+        if (edges.find((e) => {
+            return (e.from === from && e.to === to) ||
+                (e.to === from && e.from === to);
+        })) return;
+
+        edges = edges.concat([ { from, to } ]);
+        redraw();
+    }
+
+    function removeEdge(edge) {
+        edges = edges.filter((e) => !(e.from === edge.from && e.to === edge.to));
+        redraw();
+    }
+
+    function removeNode(node) {
+        edges = edges.filter((e) => !(e.from === node.id || e.to === node.id));
+        nodes = nodes.filter((n) => n.id !== node.id);
+        redraw();
+    }
+
+    // Different events
+    // Adds a new node
+    function bgDoubleclicked(event) {
+        // Determines mouse world coordinates
+        const rect = event.target.getBoundingClientRect();
+        const cx = event.clientX - rect.left
+        const cy = event.clientY - rect.top
+        const wx = ((cx - prevTransform.value.x) / size) / prevTransform.value.k - width / 2;
+        const wy = ((cy - prevTransform.value.y) / size) / prevTransform.value.k - 0.5;
+
+        nodes.push({
+            id: nanoid(),
+            pos: { x: Math.round(wx), y: Math.round(wy) },
+            class: '',
+            label: '*Tuplaklikkaa minua*',
+        });
+
+        redraw();
+    }
+
+    // Edits nodes by opening a prompt
+    function nodeDoubleclicked(event, node) {
+        promptNode.value = node;
+    }
+
+    // Removes the clicked node
+    function nodeRightclicked(event, node) {
+        event.preventDefault();
+
+        removeNode(node);
+    }
+
+    // Removes the clicked edge
+    function edgeRightclicked(event, edge) {
+        event.preventDefault();
+
+        removeEdge(edge);
+    }
+
+    // Bubbles
+    // Chat bubble max width is 70% of 30rem -> 336px
+    const size = 84;
+    const width = 4;
+
+    // Containers for different elements
+    const bubbleCont = domContent.append('div');
+    const lineCont = content.append('g');
+    
+    // Binds background doubleclick
+    container.on('dblclick', function(event) {
+        if (event.target !== svg.select('rect').node()) return;
+        bgDoubleclicked(event);
+    });
+
+    // Handles bubble element dragging
+    function bubbleDrag(bubbles) {
+        let line = null;
+        let from = null;
+        let to = null;
+
+        function start(e, d) {
+            if (e.sourceEvent.shiftKey) {
+                const x = d.pos.x * size + (width / 2) * size;
+                const y = d.pos.y * size + d.height;
+
+                line = content
+                    .append('line')
+                    .attr('marker-end', 'url(#arrow)')
+                    .attr('stroke', '#444444')
+                    .attr('stroke-width', 8)
+                    .style('cursor', 'pointer')
+                    .attr('x1', x)
+                    .attr('y1', y)
+                    .attr('x2', x)
+                    .attr('y2', y);
+
+                from = d.id;
+            }
+        }
+
+        function drag(e, d) {
+            // Screen to world
+            let x = (e.x / size) / prevTransform.value.k;
+            let y = (e.y / size) / prevTransform.value.k;
+
+            if (line) {
+                const attributes = e.sourceEvent.target.attributes;
+                const classes = e.sourceEvent.target.classList;
+
+                // Checks whether the cursor is on top of a node
+                // and snaps the edge to it
+                if (classes.contains('bubble')) {
+                    to = attributes.getNamedItem('node-id').value;
+                    if (to !== from) {
+                        const toNode = nodes.find((n) => n.id === to);
+
+                        x = toNode.pos.x + (width / 2);
+                        y = toNode.pos.y;
+                    }
+                }
+
+                line.attr('x2', x * size)
+                    .attr('y2', y * size);
+
+            } else {
+                d.pos.x = Math.round(x - width / 2);
+                d.pos.y = Math.round(y - d.height / size / 2);
+            }
+
+            redraw();
+        }
+
+        function end(e, d) {
+            if (line) {
+                line.remove();
+                line = null;
+
+                addEdge(from,to);
+            }
+        }
+
+        bubbles.call(
+            d3.drag()
+                .filter((e) => { return true; })
+                .on('start', start)
+                .on('drag', drag)
+                .on('end', end)
+        );
+    }
+
+    // Redraws bubbles and lines
+    redraw = () => {
+        // Sets bubble positions and inner HTML.
+        // Calculates the height of each bubble.
+        function bubbleUpdate(selection) {
+            selection
+                .attr('class', (d) => `bubble ${d.class}-bubble`)
+                .style('transform', (d) => `translate(${d.pos.x * size}px, ${d.pos.y * size}px)`)
+                .selectAll('.bubble-contents')
+                .html((d) => {
+                    const html = marked(d.label || '');
+                    return DOMPurify.sanitize(html);
+                })
+                .each(function(d) { d.height = d3.select(this).node().scrollHeight });
+
+            return selection;
+        }
+
+        // Sets line coordinates
+        function lineUpdate(selection) {
+            selection
+                .attr('x1', (d) => {
+                    const node = nodes.find((n) => n.id === d.from);
+                    return node.pos.x * size + (width / 2) * size;
+                })
+                .attr('y1', (d) => {
+                    const node = nodes.find((n) => n.id === d.from);
+                    return node.pos.y * size + node.height;
+                })
+                .attr('x2', (d) => {
+                    const node = nodes.find((n) => n.id === d.to);
+                    return node.pos.x * size + (width / 2) * size;
+                })
+                .attr('y2', (d) => {
+                    const node = nodes.find((n) => n.id === d.to);
+                    return node.pos.y * size;
+                });
+
+            return selection;
+        }
+
+        // Adds, updates, and removes bubbles
+        bubbleCont
+            .selectAll('div.bubble')
+            .data(nodes, (d) => '' + d.id)
+            .join(
+                (enter) => {
+                    const bubbles = enter.append('div')
+                        .call(bubbleDrag)
+                        .attr('node-id', (d) => d.id)
+                        .on('dblclick', nodeDoubleclicked)
+                        .on('dblclick', nodeDoubleclicked)
+                        .on('contextmenu', nodeRightclicked);
+
+                    // Markdown
+                    bubbles.append('div')
+                        .attr('class', 'bubble-contents')
+                        .style('pointer-events', 'none');
+                    
+                    bubbles.call(bubbleUpdate);
+
+                    return bubbles;
+                },
+
+                bubbleUpdate,
+
+                (exit) => {
+                    exit.remove();
+
+                    return exit;
+                });
+
+        lineCont
+            .selectAll('line')
+            .data(edges, (d) => `${d.from}-${d.to}`)
+            .join(
+                (enter) => {
+                    const lines = enter.append('line')
+                        .attr('marker-end', 'url(#arrow)')
+                        .attr('stroke', '#444444')
+                        .attr('stroke-width', 8)
+                        .style('cursor', 'pointer')
+                        .on('contextmenu', edgeRightclicked)
+                        .call(lineUpdate);
+
+                    return lines;
+                },
+
+                lineUpdate,
+
+                (exit) => {
+                    exit.remove();
+
+                    return exit;
+                });
+    };
+
+    loadGraph();
+    redraw();
+
+    setInterval(saveState, 1000 * 30);
+});
+
+</script>
+
+
+<template>
+    <div class="cont">
+        <svg class="graph-svg">
+            <defs>
+                <pattern id="dots" x="-2" y="-2" width="84" height="84" patternUnits="userSpaceOnUse">
+                    <circle fill="#ccc" cx="2" cy="2" r="2">
+                    </circle>
+                </pattern>
+
+                <marker id="arrow" markerWidth="10" markerHeight="10" refX="3" refY="1.5" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,3 L4.5,1.5 z" fill="#444" />
+                </marker>
+            </defs>
+        
+            <rect x="0" y="0" width="100%" height="100%" fill="url(#dots)"></rect>
+            <g :transform="`translate(${prevTransform.x},${prevTransform.y}) scale(${prevTransform.k})`"></g>
+        </svg>
+
+        <div class="graph">
+        </div>
+    </div>
+
+    <div class="controls">
+
+        <div @click="downloadData">
+            <font-awesome-icon class="icon" icon="download" />
+        </div>
+
+        <div @click="uploadData">
+            <font-awesome-icon class="icon" icon="upload" />
+        </div>
+
+        <div @click="saveState">
+            <font-awesome-icon class="icon" icon="save" />
+        </div>
+
+        <div class="disabled">
+            <font-awesome-icon class="icon" icon="expand" />
+        </div>
+    </div>
+
+    <NodePrompt v-if="promptNode" @submit="promptSubmit" :node="promptNode"></NodePrompt>
+</template>
+
+
+<style scoped>
+.cont {
+    width: 100%;
+    height: calc(100vh - 3.6rem);
+    overflow: hidden;
+    position: relative;
+}
+
+svg.graph-svg, .graph {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.graph {
+    pointer-events: none;
+}
+
+.graph:deep(img) {
+    width: 90%;
+    height: auto;
+    margin: 1rem auto;
+    display: block;
+    text-align: center;
+}
+
+.graph:deep(ul) {
+    list-style-position: inside;
+}
+
+.controls {
+    position: absolute;
+    top: 3.6rem;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    margin: 1rem;
+    background-color: #eee;
+    gap: 1px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+.controls > * {
+    width: 3rem;
+    height: 3rem;
+    background-color: #eee;
+    cursor: pointer;
+    user-select: none;
+    color: #888;
+    padding: 0.25rem;
+}
+
+.controls > *:hover {
+    background-color: #fafafa;
+    color: #444;
+}
+
+.disabled {
+    cursor: auto;
+    background-color: #eee !important;
+    color: #aaa !important;
+}
+
+.icon {
+    width: 100%;
+    height: 100%;
+}
+
+.selected {
+    background-color: white;
+}
+
+.graph:deep(.bubble) {
+    pointer-events: auto;
+    cursor: pointer;
+    user-select: none;
+    position: absolute;
+    width: 336px;
+    height: fit-content;
+    color: #003a49;
+    padding: 1rem;
+    background-color: #aaa;
+    border: 2px solid #999;
+    border-radius: 1rem;
+    text-align: center;
+}
+
+.graph:deep(.bot-bubble) {
+    background-color: #b6d7df;
+    border: 2px solid #a6c7cf;
+    border-radius: 1rem 1rem 1rem 0;
+    text-align: start;
+}
+
+.graph:deep(.user-bubble) {
+    background-color: #eee;
+    border: 2px solid #ddd;
+    border-radius: 1rem 1rem 0 1rem;
+    text-align: start;
+}
+</style>
