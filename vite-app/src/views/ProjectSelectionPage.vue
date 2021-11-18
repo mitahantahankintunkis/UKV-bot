@@ -1,9 +1,9 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import { ref } from '@vue/reactivity';
-import { doc, getDoc } from 'firebase/firestore';
+import { arrayUnion, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { inject } from '@vue/runtime-core';
-import { getUser, projectNameToId } from '../utils';
+import { getUser } from '../utils';
 
 
 const router = useRouter();
@@ -18,32 +18,51 @@ const projects = ref([]);
 async function getProjects() {
     if (!db || !user) return;
 
-    const docRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(docRef);
+    try {
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
 
-    projectsLoaded.value = true;
+        projectsLoaded.value = true;
 
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        projects.value = data['projects'] || [];
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            projects.value = data['projects'] || [];
+        }
+    } catch(e) {
+        message.value = 'Virhe haettaessa projekteja';
+        console.console(e);
     }
 }
 getProjects();
 
 
-function createProject() {
-    // Using prompt since this feature isn't going to be used
-    // too many times
+async function createProject() {
+    // Using prompt since this feature isn't going to be
+    // used too many times
     const projectName = prompt('Projektin nimi');
 
-    if (!projectName || projectName.length === 0) {
-        message.value = 'Virheellinen nimi';
+    if (!projectName || projectName.length === 0) return;
+
+    // Client side validation only. pls no hacking
+    if (!(/^[a-z0-9-_]+$/gi).test('asdf')) {
+        message.value = 'Nimi voi koostua ainoastaan aakkosista, numeroista, sekä merkeistä -_';
         return;
     }
 
-    const projectId = projectNameToId(projectName);
-    console.log(projectId);
-    router.push(`/admin/${projectId}`);
+    try {
+        // Update project user access
+        const docRef = doc(db, 'users', user.uid);
+        await updateDoc(docRef, {
+            projects: arrayUnion(projectName),
+        });
+
+        router.push(`/admin/${projectName}/`);
+
+    } catch(e) {
+        console.error(e);
+        message.value = 'Virhe luotaessa uutta projektia';
+        return;
+    }
 }
 </script>
 
@@ -56,7 +75,7 @@ function createProject() {
             <h3 v-if="!projectsLoaded">Ladataan...</h3>
             <ul v-else>
                 <li v-for="p in projects" :key="p">
-                    <router-link :to="`/admin/${projectNameToId(p)}/`">{{ p }}</router-link>
+                    <router-link :to="`/admin/${p}/`">{{ p }}</router-link>
                 </li>
             </ul>
 
@@ -116,6 +135,10 @@ button:hover {
     background-color: rgb(165, 189, 202);
 }
 
+h3 {
+    text-align: center;
+}
+
 h4 {
     color: crimson;
     text-align: center;
@@ -128,6 +151,20 @@ ul {
 
 .projectlink {
     cursor: pointer;
+}
+
+li {
+    width: 100%;
+}
+
+a {
+    border-bottom: 1px solid gray;
+    width: 100%;
+    line-height: 2rem;
+    display: block;
+    text-decoration: none;
+    color: #222;
+    margin-bottom: 0.5rem;
 }
 
 </style>

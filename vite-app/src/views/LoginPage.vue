@@ -19,6 +19,9 @@ function login(e) {
     setPersistence(auth, browserLocalPersistence).then(() => {
         return signInWithEmailAndPassword(auth, email, pwd).then((cred) => {
             router.push('/admin');
+        }).catch((e) => {
+            console.error(e);
+            message.value = 'Virhe kirjautuessa sisään';
         });
     }).catch((e) => {
             console.error(e);

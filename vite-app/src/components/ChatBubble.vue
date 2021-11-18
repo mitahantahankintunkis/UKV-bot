@@ -5,10 +5,10 @@ import DOMPurify from 'dompurify';
 
 const props = defineProps({
     message: String,
-    own: Boolean,
+    owner: String,
 });
 
-const { message, own } = toRefs(props);
+const { message, owner } = toRefs(props);
 
 // Safely parses markdown into HTML
 function parseMessage() {
@@ -19,7 +19,7 @@ function parseMessage() {
 
 
 <template>
-<div class="message" :class="{ 'own-msg': own, 'bot-msg': !own }">
+<div class="message" :class="{ 'own-msg': owner === 'user', 'bot-msg': owner === 'bot' }">
     <div v-html="parseMessage()"></div>
 </div>
 </template>
@@ -29,14 +29,18 @@ function parseMessage() {
 .message {
     max-width: 70%;
     margin: 0.5rem;
-    padding: 0 1rem;
+    padding: 0.5rem 1rem;
     color: #003a49;
+
+    background-color: #ddd;
+    border-radius: 1rem 1rem 1rem 1rem;
+    text-align: center;
+    align-self: center;
 }
 
 .own-msg {
     background-color: #eeeeee;
     border-radius: 1rem 1rem 0 1rem;
-    max-width: 70%;
     text-align: end;
     align-self: flex-end;
 }
@@ -45,8 +49,9 @@ function parseMessage() {
     background-color: #8cc6d4;
     background-color: #b6d7df;
     border-radius: 1rem 1rem 1rem 0;
-    max-width: 70%;
     width: max-content;
+    text-align: start;
+    align-self: flex-start;
 }
 
 </style>

@@ -4,6 +4,7 @@ import CircularStack from '../circularStack.js';
 import DOMPurify from 'dompurify';
 import InfoBar from './InfoBar.vue';
 import NodePrompt from './NodePrompt.vue';
+import ChatbotContent from './ChatbotContent.vue';
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from '@firebase/firestore';
 import { inject, onBeforeUnmount, onMounted, ref } from '@vue/runtime-core';
 import { marked } from 'marked';
@@ -19,10 +20,17 @@ const info = ref([ '', 'Ei muutoksia', '' ]);
 const intervalID = ref(-1);
 const history = ref(new CircularStack(64));
 
-let nodes = props.project.nodes || [];
-let edges = props.project.edges || [];
+//let nodes = props.project.nodes || [];
+//let edges = props.project.edges || [];
+const project = ref(props.project || {
+    nodes: [],
+    edges: [],
+    page: '# TODO',
+});
 
-if (nodes.length > 0) history.value.push({ nodes, edges });
+if (project.value.nodes && project.value.nodes.length > 0) {
+    history.value.push(project.value);
+}
 
 const prevTransform = ref(
     JSON.parse(localStorage.getItem('treeview-transform')) ||
@@ -38,13 +46,6 @@ const size = 84;
 const width = 4;
 
 function saveToHistory() {
-    const curState = history.value.head();
-    const newState = {
-        ...curState,
-        nodes,
-        edges,
-    };
-
     const statesEqual = (a, b) => {
         if (a.nodes.length !== b.nodes.length) return false;
         if (a.edges.length !== b.edges.length) return false;
@@ -65,9 +66,10 @@ function saveToHistory() {
         return true;
     };
 
-    if (statesEqual(curState, newState)) return;
+    const prevProject = history.value.head();
+    if (prevProject && statesEqual(prevProject, project.value)) return;
 
-    history.value.push(newState);
+    history.value.push(project.value);
 }
 
 // Edits node data by prompting the user
@@ -83,14 +85,14 @@ function promptSubmit(value) {
 
 // Centers the graph on the screen
 function center() {
-    if (nodes.length === 0) return;
+    if (project.value.nodes.length === 0) return;
 
     let minX = 1e9;
     let minY = 1e9;
     let maxX = -1e9;
     let maxY = -1e9;
 
-    for (let node of nodes) {
+    for (let node of project.value.nodes) {
         let x0 = node.pos.x * size;
         let y0 = node.pos.y * size;
         let x1 = node.pos.x * size + size * width;
@@ -113,8 +115,8 @@ async function uploadData() {
     info.value[1] = 'Lähetetään...';
 
     await updateDoc(docRef, {
-        nodes: nodes,
-        edges: edges,
+        nodes: project.value.nodes,
+        edges: project.value.edges,
         timestamp: serverTimestamp(),
     });
 
@@ -133,19 +135,19 @@ async function downloadData() {
 
     if (docSnap.exists()) {
         const data = docSnap.data();
-        const project = docSnap.data() || {};
+        const cloudProject = docSnap.data() || {};
 
         info.value[1] = 'Ladattu pilvestä';
 
         saveToHistory();
 
         // Hacky way of reseting the graph
-        nodes = [];
-        edges = [];
+        project.value.nodes = [];
+        project.value.edges = [];
         redraw();
 
-        nodes = project.nodes || [];
-        edges = project.edges || [];
+        console.log(cloudProject);
+        project.value = cloudProject;
         redraw();
     }
 }
@@ -154,15 +156,14 @@ async function downloadData() {
 // Loads from localStorage
 function loadGraph() {
     try {
-        const graph = JSON.parse(localStorage.getItem('graph'));
+        const storedProject = JSON.parse(localStorage.getItem('project'));
 
-        if (graph) {
+        if (storedProject) {
             info.value[1] = 'Ladattu tietokoneelta';
-            console.log(graph);
 
             saveToHistory();
-            nodes = graph.nodes || [];
-            edges = graph.edges || [];
+            project.value.nodes = storedProject.nodes || [];
+            project.value.edges = storedProject.edges || [];
 
             redraw();
 
@@ -183,11 +184,8 @@ function saveState() {
     // Saves the current camera transformation
     localStorage.setItem('treeview-transform', JSON.stringify(prevTransform.value));
 
-    if (nodes.length > 0) {
-        localStorage.setItem('graph', JSON.stringify({
-            nodes,
-            edges
-        }));
+    if (project.value.nodes && project.value.nodes.length > 0) {
+        localStorage.setItem('project', JSON.stringify(project.value));
     }
 }
 
@@ -198,8 +196,8 @@ function undo() {
     const prev = history.value.pop();
 
     if (prev) {
-        nodes = prev.nodes || [];
-        edges = prev.edges || [];
+        project.value.nodes = prev.nodes || [];
+        project.value.edges = prev.edges || [];
     }
 
     redraw();
@@ -212,8 +210,8 @@ function redo() {
     const prev = history.value.unpop();
 
     if (prev) {
-        nodes = prev.nodes || [];
-        edges = prev.edges || [];
+        project.value.nodes = prev.nodes || [];
+        project.value.edges = prev.edges || [];
     }
 
     redraw();
@@ -264,7 +262,7 @@ onMounted(() => {
 
     function addEdge(from, to) {
         if (from === to) return;
-        if (edges.find((e) => {
+        if (project.value.edges.find((e) => {
             return (e.from === from && e.to === to) ||
                 (e.to === from && e.from === to);
         })) return;
@@ -272,7 +270,7 @@ onMounted(() => {
         info.value[1] = 'Tallentamattomia muutoksia';
 
         saveToHistory();
-        edges = edges.concat([ { from, to } ]);
+        project.value.edges = project.value.edges.concat([ { from, to } ]);
 
         redraw();
     }
@@ -281,7 +279,7 @@ onMounted(() => {
         info.value[1] = 'Tallentamattomia muutoksia';
 
         saveToHistory();
-        edges = edges.filter((e) => !(e.from === edge.from && e.to === edge.to));
+        project.value.edges = project.value.edges.filter((e) => !(e.from === edge.from && e.to === edge.to));
 
         redraw();
     }
@@ -290,15 +288,15 @@ onMounted(() => {
         info.value[1] = 'Tallentamattomia muutoksia';
 
         saveToHistory();
-        nodes = nodes.concat([ node ]);
+        project.value.nodes = project.value.nodes.concat([ node ]);
     }
 
     function removeNode(node) {
         info.value[1] = 'Tallentamattomia muutoksia';
 
         saveToHistory();
-        edges = edges.filter((e) => !(e.from === node.id || e.to === node.id));
-        nodes = nodes.filter((n) => n.id !== node.id);
+        project.value.edges = project.value.edges.filter((e) => !(e.from === node.id || e.to === node.id));
+        project.value.nodes = project.value.nodes.filter((n) => n.id !== node.id);
 
         redraw();
     }
@@ -399,7 +397,7 @@ onMounted(() => {
                 if (classes.contains('bubble')) {
                     to = attributes.getNamedItem('node-id').value;
                     if (to !== from) {
-                        const toNode = nodes.find((n) => n.id === to);
+                        const toNode = project.value.nodes.find((n) => n.id === to);
 
                         x = toNode.pos.x + (width / 2);
                         y = toNode.pos.y;
@@ -460,19 +458,19 @@ onMounted(() => {
         function lineUpdate(selection) {
             selection
                 .attr('x1', (d) => {
-                    const node = nodes.find((n) => n.id === d.from);
+                    const node = project.value.nodes.find((n) => n.id === d.from);
                     return node.pos.x * size + (width / 2) * size;
                 })
                 .attr('y1', (d) => {
-                    const node = nodes.find((n) => n.id === d.from);
+                    const node = project.value.nodes.find((n) => n.id === d.from);
                     return node.pos.y * size + node.height;
                 })
                 .attr('x2', (d) => {
-                    const node = nodes.find((n) => n.id === d.to);
+                    const node = project.value.nodes.find((n) => n.id === d.to);
                     return node.pos.x * size + (width / 2) * size;
                 })
                 .attr('y2', (d) => {
-                    const node = nodes.find((n) => n.id === d.to);
+                    const node = project.value.nodes.find((n) => n.id === d.to);
                     return node.pos.y * size;
                 });
 
@@ -482,7 +480,7 @@ onMounted(() => {
         // Adds, updates, and removes bubbles
         bubbleCont
             .selectAll('div.bubble')
-            .data(nodes, (d) => '' + d.id)
+            .data(project.value.nodes || [], (d) => '' + d.id)
             .join(
                 (enter) => {
                     const bubbles = enter.append('div')
@@ -512,7 +510,7 @@ onMounted(() => {
 
         lineCont
             .selectAll('line')
-            .data(edges, (d) => `${d.from}-${d.to}`)
+            .data(project.value.edges || [], (d) => `${d.from}-${d.to}`)
             .join(
                 (enter) => {
                     const lines = enter.append('line')
@@ -605,10 +603,14 @@ onMounted(() => {
             </div>
         </div>
 
-        <NodePrompt v-if="promptNode" @submit="promptSubmit" :node="promptNode"></NodePrompt>
-
         <div class="infobar">
             <InfoBar :info="info"></InfoBar>
+        </div>
+
+        <NodePrompt v-if="promptNode" @submit="promptSubmit" :node="promptNode"></NodePrompt>
+
+        <div class="chatbot">
+            <ChatbotContent :key="history.index" :project="project"></ChatbotContent>
         </div>
     </div>
 </template>
@@ -714,7 +716,7 @@ svg.graph-svg, .graph {
     position: absolute;
     left: 0;
     bottom: 0px;
-    width: 100%;
+    right: 30rem;
 }
 
 .graph:deep(.bubble) {
@@ -744,5 +746,13 @@ svg.graph-svg, .graph {
     border: 2px solid #ddd;
     border-radius: 1rem 1rem 0 1rem;
     text-align: start;
+}
+
+.chatbot {
+    border-left: 1px solid gray;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
 }
 </style>
