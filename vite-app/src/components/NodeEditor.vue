@@ -1,6 +1,8 @@
 <script setup>
 import * as d3 from 'd3';
+import CircularStack from '../circularStack.js';
 import DOMPurify from 'dompurify';
+import InfoBar from './InfoBar.vue';
 import NodePrompt from './NodePrompt.vue';
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from '@firebase/firestore';
 import { inject, onBeforeUnmount, onMounted, ref } from '@vue/runtime-core';
@@ -13,9 +15,14 @@ const route = useRoute();
 const db = inject('db');
 const props = defineProps([ 'project' ]);
 const promptNode = ref(null);
+const info = ref([ '', 'Ei muutoksia', '' ]);
+const intervalID = ref(-1);
+const history = ref(new CircularStack(64));
 
 let nodes = props.project.nodes || [];
 let edges = props.project.edges || [];
+
+if (nodes.length > 0) history.value.push({ nodes, edges });
 
 const prevTransform = ref(
     JSON.parse(localStorage.getItem('treeview-transform')) ||
@@ -24,6 +31,44 @@ const prevTransform = ref(
 
 // Redrawing function defined in onMounted
 let redraw;
+
+// Grid size (px) and bubble width
+// Chat bubble max width is 70% of 30rem -> 336px
+const size = 84;
+const width = 4;
+
+function saveToHistory() {
+    const curState = history.value.head();
+    const newState = {
+        ...curState,
+        nodes,
+        edges,
+    };
+
+    const statesEqual = (a, b) => {
+        if (a.nodes.length !== b.nodes.length) return false;
+        if (a.edges.length !== b.edges.length) return false;
+
+        for (let i = 0; i < a.nodes.length; ++i) {
+            if (a.nodes[i].id !== b.nodes[i].id) return false;
+            if (a.nodes[i].label !== b.nodes[i].label) return false;
+            if (a.nodes[i].class !== b.nodes[i].class) return false;
+            if (a.nodes[i].pos.x !== b.nodes[i].pos.x) return false;
+            if (a.nodes[i].pos.y !== b.nodes[i].pos.y) return false;
+        }
+
+        for (let i = 0; i < a.edges.length; ++i) {
+            if (a.edges[i].from !== b.edges[i].from) return false;
+            if (a.edges[i].to !== b.edges[i].to) return false;
+        }
+
+        return true;
+    };
+
+    if (statesEqual(curState, newState)) return;
+
+    history.value.push(newState);
+}
 
 // Edits node data by prompting the user
 function promptSubmit(value) {
@@ -36,21 +81,51 @@ function promptSubmit(value) {
     redraw();
 }
 
+// Centers the graph on the screen
+function center() {
+    if (nodes.length === 0) return;
+
+    let minX = 1e9;
+    let minY = 1e9;
+    let maxX = -1e9;
+    let maxY = -1e9;
+
+    for (let node of nodes) {
+        let x0 = node.pos.x * size;
+        let y0 = node.pos.y * size;
+        let x1 = node.pos.x * size + size * width;
+        let y1 = node.pos.y * size + (node.height || 0);
+
+        if (minX > x0) minX = x0;
+        if (minY > y0) minY = y0;
+        if (maxX < x1) maxX = x1;
+        if (maxY < y1) maxY = y1;
+    }
+
+    info.value[2] = 'TODO - Toteuttaminen kesken';
+}
+
 
 async function uploadData() {
     const projectId = route.params.project;
     const docRef = doc(db, 'projects', projectId);
 
+    info.value[1] = 'Lähetetään...';
+
     await updateDoc(docRef, {
-        nodes,
-        edges,
+        nodes: nodes,
+        edges: edges,
         timestamp: serverTimestamp(),
     });
+
+    info.value[1] = 'Lähetetty pilveen';
 }
 
 
 async function downloadData() {
     if (!db) return;
+
+    info.value[1] = 'Ladataan...';
 
     const projectId = route.params.project;
     const docRef = doc(db, 'projects', projectId);
@@ -60,13 +135,17 @@ async function downloadData() {
         const data = docSnap.data();
         const project = docSnap.data() || {};
 
-        // Resets the graph
+        info.value[1] = 'Ladattu pilvestä';
+
+        saveToHistory();
+
+        // Hacky way of reseting the graph
         nodes = [];
         edges = [];
         redraw();
 
-        nodes = project.nodes || [];
-        edges = project.edges || [];
+        nodes = project.nodes || [];
+        edges = project.edges || [];
         redraw();
     }
 }
@@ -78,8 +157,13 @@ function loadGraph() {
         const graph = JSON.parse(localStorage.getItem('graph'));
 
         if (graph) {
-            nodes = graph.nodes;
-            edges = graph.edges;
+            info.value[1] = 'Ladattu tietokoneelta';
+            console.log(graph);
+
+            saveToHistory();
+            nodes = graph.nodes || [];
+            edges = graph.edges || [];
+
             redraw();
 
             localStorage.removeItem('graph');
@@ -94,12 +178,45 @@ function loadGraph() {
 function saveState() {
     console.log('saved');
 
+    info.value[1] = 'Tallennettu';
+
     // Saves the current camera transformation
     localStorage.setItem('treeview-transform', JSON.stringify(prevTransform.value));
 
     if (nodes.length > 0) {
-        localStorage.setItem('graph', JSON.stringify({ nodes, edges }));
+        localStorage.setItem('graph', JSON.stringify({
+            nodes,
+            edges
+        }));
     }
+}
+
+function undo() {
+    info.value[2] = 'TODO - Toteuttaminen kesken';
+    return;
+
+    const prev = history.value.pop();
+
+    if (prev) {
+        nodes = prev.nodes || [];
+        edges = prev.edges || [];
+    }
+
+    redraw();
+}
+
+function redo() {
+    info.value[2] = 'TODO - Toteuttaminen kesken';
+    return;
+
+    const prev = history.value.unpop();
+
+    if (prev) {
+        nodes = prev.nodes || [];
+        edges = prev.edges || [];
+    }
+
+    redraw();
 }
 
 onBeforeUnmount(saveState);
@@ -107,7 +224,7 @@ onBeforeUnmount(saveState);
 onMounted(() => {
     console.log('remount');
 
-    const container = d3.select('.cont')
+    const container = d3.select('.graph-cont')
     const svg = container.select('svg.graph-svg');
     const content = svg.select('g');
     const pattern = svg.select('pattern');
@@ -152,18 +269,37 @@ onMounted(() => {
                 (e.to === from && e.from === to);
         })) return;
 
+        info.value[1] = 'Tallentamattomia muutoksia';
+
+        saveToHistory();
         edges = edges.concat([ { from, to } ]);
+
         redraw();
     }
 
     function removeEdge(edge) {
+        info.value[1] = 'Tallentamattomia muutoksia';
+
+        saveToHistory();
         edges = edges.filter((e) => !(e.from === edge.from && e.to === edge.to));
+
         redraw();
     }
 
+    function addNode(node) {
+        info.value[1] = 'Tallentamattomia muutoksia';
+
+        saveToHistory();
+        nodes = nodes.concat([ node ]);
+    }
+
     function removeNode(node) {
+        info.value[1] = 'Tallentamattomia muutoksia';
+
+        saveToHistory();
         edges = edges.filter((e) => !(e.from === node.id || e.to === node.id));
         nodes = nodes.filter((n) => n.id !== node.id);
+
         redraw();
     }
 
@@ -177,7 +313,7 @@ onMounted(() => {
         const wx = ((cx - prevTransform.value.x) / size) / prevTransform.value.k - width / 2;
         const wy = ((cy - prevTransform.value.y) / size) / prevTransform.value.k - 0.5;
 
-        nodes.push({
+        addNode({
             id: nanoid(),
             pos: { x: Math.round(wx), y: Math.round(wy) },
             class: '',
@@ -207,9 +343,6 @@ onMounted(() => {
     }
 
     // Bubbles
-    // Chat bubble max width is 70% of 30rem -> 336px
-    const size = 84;
-    const width = 4;
 
     // Containers for different elements
     const bubbleCont = domContent.append('div');
@@ -226,6 +359,7 @@ onMounted(() => {
         let line = null;
         let from = null;
         let to = null;
+        let startPos = null;
 
         function start(e, d) {
             if (e.sourceEvent.shiftKey) {
@@ -244,6 +378,10 @@ onMounted(() => {
                     .attr('y2', y);
 
                 from = d.id;
+                startPos = d.pos;
+
+            } else {
+                saveToHistory();
             }
         }
 
@@ -274,6 +412,7 @@ onMounted(() => {
             } else {
                 d.pos.x = Math.round(x - width / 2);
                 d.pos.y = Math.round(y - d.height / size / 2);
+                info.value[1] = 'Tallentamattomia muutoksia';
             }
 
             redraw();
@@ -286,6 +425,8 @@ onMounted(() => {
 
                 addEdge(from,to);
             }
+
+            redraw();
         }
 
         bubbles.call(
@@ -397,7 +538,22 @@ onMounted(() => {
     loadGraph();
     redraw();
 
-    setInterval(saveState, 1000 * 30);
+    // Save interval
+    clearInterval(intervalID.value);
+    intervalID.value = setInterval(saveState, 1000 * 30);
+
+    // Binds shortcuts
+    document.addEventListener('keydown', function(event) {
+      if (event.ctrlKey && event.key === 'z') {
+          undo();
+
+      } else if (event.ctrlKey && event.shiftKey && event.key === 'z') {
+          redo();
+
+      } else if (event.ctrlKey && event.key === 's') {
+          saveState();
+      }
+    });
 });
 
 </script>
@@ -405,46 +561,56 @@ onMounted(() => {
 
 <template>
     <div class="cont">
-        <svg class="graph-svg">
-            <defs>
-                <pattern id="dots" x="-2" y="-2" width="84" height="84" patternUnits="userSpaceOnUse">
-                    <circle fill="#ccc" cx="2" cy="2" r="2">
-                    </circle>
-                </pattern>
+        <div class="graph-cont">
+            <svg class="graph-svg">
+                <defs>
+                    <pattern id="dots" x="-2" y="-2" width="84" height="84" patternUnits="userSpaceOnUse">
+                        <circle fill="#ccc" cx="2" cy="2" r="2">
+                        </circle>
+                    </pattern>
 
-                <marker id="arrow" markerWidth="10" markerHeight="10" refX="3" refY="1.5" orient="auto" markerUnits="strokeWidth">
-                    <path d="M0,0 L0,3 L4.5,1.5 z" fill="#444" />
-                </marker>
-            </defs>
-        
-            <rect x="0" y="0" width="100%" height="100%" fill="url(#dots)"></rect>
-            <g :transform="`translate(${prevTransform.x},${prevTransform.y}) scale(${prevTransform.k})`"></g>
-        </svg>
+                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="3" refY="1.5" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,3 L4.5,1.5 z" fill="#444" />
+                    </marker>
+                </defs>
+            
+                <rect x="0" y="0" width="100%" height="100%" fill="url(#dots)"></rect>
+                <g :transform="`translate(${prevTransform.x},${prevTransform.y}) scale(${prevTransform.k})`"></g>
+            </svg>
 
-        <div class="graph">
+            <div class="graph">
+            </div>
+        </div>
+
+        <div class="controls">
+
+            <div @click="downloadData">
+                <font-awesome-icon class="icon" icon="download" />
+                <div class="tooltip">Lataa pilvestä</div>
+            </div>
+
+            <div @click="uploadData">
+                <font-awesome-icon class="icon" icon="upload" />
+                <div class="tooltip">Lähetä pilveen/päivitä botti</div>
+            </div>
+
+            <div @click="saveState">
+                <font-awesome-icon class="icon" icon="save" />
+                <div class="tooltip">Tallenna tietokoneelle</div>
+            </div>
+
+            <div @click="center">
+                <font-awesome-icon class="icon" icon="expand" />
+                <div class="tooltip">Keskitä</div>
+            </div>
+        </div>
+
+        <NodePrompt v-if="promptNode" @submit="promptSubmit" :node="promptNode"></NodePrompt>
+
+        <div class="infobar">
+            <InfoBar :info="info"></InfoBar>
         </div>
     </div>
-
-    <div class="controls">
-
-        <div @click="downloadData">
-            <font-awesome-icon class="icon" icon="download" />
-        </div>
-
-        <div @click="uploadData">
-            <font-awesome-icon class="icon" icon="upload" />
-        </div>
-
-        <div @click="saveState">
-            <font-awesome-icon class="icon" icon="save" />
-        </div>
-
-        <div class="disabled">
-            <font-awesome-icon class="icon" icon="expand" />
-        </div>
-    </div>
-
-    <NodePrompt v-if="promptNode" @submit="promptSubmit" :node="promptNode"></NodePrompt>
 </template>
 
 
@@ -453,6 +619,12 @@ onMounted(() => {
     width: 100%;
     height: calc(100vh - 3.6rem);
     overflow: hidden;
+    position: relative;
+}
+
+.graph-cont {
+    width: 100%;
+    height: 100%;
     position: relative;
 }
 
@@ -501,17 +673,12 @@ svg.graph-svg, .graph {
     user-select: none;
     color: #888;
     padding: 0.25rem;
+    position: relative;
 }
 
 .controls > *:hover {
     background-color: #fafafa;
     color: #444;
-}
-
-.disabled {
-    cursor: auto;
-    background-color: #eee !important;
-    color: #aaa !important;
 }
 
 .icon {
@@ -521,6 +688,33 @@ svg.graph-svg, .graph {
 
 .selected {
     background-color: white;
+}
+
+.tooltip {
+    display: inline-block;
+    z-index: 10;
+    pointer-events: none;
+    width: max-content;
+    background-color: #444;
+    color: #eee;
+    position: absolute;
+    left: 3.5rem;
+    top: 0.5rem;
+    padding: 4px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.controls > *:hover .tooltip {
+    opacity: 1;
+}
+
+.infobar {
+    position: absolute;
+    left: 0;
+    bottom: 0px;
+    width: 100%;
 }
 
 .graph:deep(.bubble) {
