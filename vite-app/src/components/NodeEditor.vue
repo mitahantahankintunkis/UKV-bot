@@ -28,9 +28,9 @@ const project = ref(props.project || {
     page: '# TODO',
 });
 
-if (project.value.nodes && project.value.nodes.length > 0) {
-    history.value.push(project.value);
-}
+//if (project.value.nodes && project.value.nodes.length > 0) {
+//    history.value.push(project.value);
+//}
 
 const prevTransform = ref(
     JSON.parse(localStorage.getItem('treeview-transform')) ||
@@ -67,14 +67,18 @@ function saveToHistory() {
     };
 
     const prevProject = history.value.head();
-    if (prevProject && statesEqual(prevProject, project.value)) return;
+    console.log('saving state');
+    if (prevProject && project.value && statesEqual(prevProject, project.value)) return;
 
-    history.value.push(project.value);
+    const copy = JSON.parse(JSON.stringify(project.value));
+    console.log(copy);
+    history.value.push(copy);
 }
 
 // Edits node data by prompting the user
 function promptSubmit(value) {
     if (value) {
+        saveToHistory();
         promptNode.value.label = value.label;
         promptNode.value.class = value.class;
     }
@@ -109,6 +113,11 @@ function center() {
 
 
 async function uploadData() {
+    if (props.project && props.project.readonly) {
+        info.value[2] = 'Ei onnistu. Projekti on lukutilassa';
+        return;
+    }
+
     const projectId = route.params.project;
     const docRef = doc(db, 'projects', projectId);
 
@@ -118,9 +127,14 @@ async function uploadData() {
         nodes: project.value.nodes,
         edges: project.value.edges,
         timestamp: serverTimestamp(),
-    });
 
-    info.value[1] = 'Lähetetty pilveen';
+    }).then(() => {
+        info.value[1] = 'Lähetetty pilveen';
+
+    }).catch((e) => {
+        console.error(e);
+        info.value[2] = 'Virhe lähetettäessä pilveen';
+    });
 }
 
 
@@ -131,25 +145,32 @@ async function downloadData() {
 
     const projectId = route.params.project;
     const docRef = doc(db, 'projects', projectId);
-    const docSnap = await getDoc(docRef);
+    const docSnap = await getDoc(docRef)
+        .then((docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const cloudProject = docSnap.data() || {};
 
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        const cloudProject = docSnap.data() || {};
+                info.value[1] = 'Ladattu pilvestä';
 
-        info.value[1] = 'Ladattu pilvestä';
+                saveToHistory();
 
-        saveToHistory();
+                // Hacky way of reseting the graph
+                project.value.nodes = [];
+                project.value.edges = [];
+                redraw();
 
-        // Hacky way of reseting the graph
-        project.value.nodes = [];
-        project.value.edges = [];
-        redraw();
+                console.log(cloudProject);
+                project.value = cloudProject;
+                redraw();
+            } else {
+                info.value[1] = 'Projektia ei löytynyt pilvestä';
+            }
 
-        console.log(cloudProject);
-        project.value = cloudProject;
-        redraw();
-    }
+        }).catch((e) => {
+            console.error(e);
+            info.value[2] = 'Virhe ladattaessa pilvestä';
+        });
 }
 
 
@@ -190,8 +211,7 @@ function saveState() {
 }
 
 function undo() {
-    info.value[2] = 'TODO - Toteuttaminen kesken';
-    return;
+    info.value[2] = 'Erittäin buginen, ei kannata luottaa';
 
     const prev = history.value.pop();
 
@@ -204,8 +224,7 @@ function undo() {
 }
 
 function redo() {
-    info.value[2] = 'TODO - Toteuttaminen kesken';
-    return;
+    info.value[2] = 'Erittäin buginen, ei kannata luottaa';
 
     const prev = history.value.unpop();
 
@@ -360,6 +379,8 @@ onMounted(() => {
         let startPos = null;
 
         function start(e, d) {
+            startPos = d.pos;
+
             if (e.sourceEvent.shiftKey) {
                 const x = d.pos.x * size + (width / 2) * size;
                 const y = d.pos.y * size + d.height;
@@ -376,10 +397,6 @@ onMounted(() => {
                     .attr('y2', y);
 
                 from = d.id;
-                startPos = d.pos;
-
-            } else {
-                saveToHistory();
             }
         }
 
@@ -422,6 +439,16 @@ onMounted(() => {
                 line = null;
 
                 addEdge(from,to);
+            } else {
+                if (startPos.x !== d.pos.x || startPos.y !== d.pos.y) {
+                    // Hacky way of saving the state
+                    const tempPos = d.pos;
+                    d.pos.x = startPos.x;
+                    d.pos.y = startPos.y;
+                    saveToHistory();
+
+                    d.pos = tempPos;
+                }
             }
 
             redraw();

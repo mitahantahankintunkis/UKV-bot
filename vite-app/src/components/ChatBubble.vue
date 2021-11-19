@@ -19,7 +19,7 @@ function parseMessage() {
 
 
 <template>
-<div class="message" :class="{ 'own-msg': owner === 'user', 'bot-msg': owner === 'bot' }">
+<div class="message" :class="`${owner}-msg`">
     <div v-html="parseMessage()"></div>
 </div>
 </template>
@@ -38,11 +38,11 @@ function parseMessage() {
     align-self: center;
 }
 
-.own-msg {
+.user-msg {
     background-color: #eeeeee;
     border-radius: 1rem 1rem 0 1rem;
     text-align: end;
-    align-self: flex-end;
+    align-self: end;
 }
 
 .bot-msg {
@@ -52,6 +52,18 @@ function parseMessage() {
     width: max-content;
     text-align: start;
     align-self: flex-start;
+}
+
+.message:deep(img) {
+    width: 90%;
+    height: auto;
+    margin: 1rem auto;
+    display: block;
+    text-align: center;
+}
+
+.message:deep(ul) {
+    list-style-position: inside;
 }
 
 </style>

@@ -1,8 +1,9 @@
 <script setup>
-import { marked } from 'marked';
+import BotContent from '../components/BotContent.vue';
 import DOMPurify from 'dompurify';
-import { ref } from '@vue/reactivity';
 import Markdown from '../components/Markdown.vue';
+import { marked } from 'marked';
+import { ref } from '@vue/reactivity';
 
 
 const markdown = ref(
@@ -28,7 +29,7 @@ function textChanged(e) {
         <div class="right">
             <div>Sivuston näkymä</div>
             <div class="rendered">
-                <Markdown :key="markdown" :markdown="markdown"></Markdown>
+                <BotContent :key="markdown" :markdown="markdown"></BotContent>
             </div>
         </div>
     </div>
@@ -52,6 +53,7 @@ function textChanged(e) {
 textarea {
     height: 100%;
     overflow: auto;
+    resize: none;
 }
 
 .rendered {

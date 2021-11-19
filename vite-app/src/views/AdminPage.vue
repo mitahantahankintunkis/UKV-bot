@@ -25,6 +25,7 @@ async function setData() {
         nodes: [],
         edges: [],
         page: '# TODO',
+        readonly: false,
         timestamp: serverTimestamp(),
     };
 

@@ -1,9 +1,11 @@
 <script setup>
 import ChatBubble from './ChatBubble.vue';
-import { ref } from "@vue/reactivity";
-import { nextTick, onUpdated } from '@vue/runtime-core';
+import { ref } from '@vue/reactivity';
+import { nextTick } from '@vue/runtime-core';
+import { useRoute } from 'vue-router';
 
 
+const route = useRoute();
 const { project } = defineProps([ 'project' ]);
 const emit = defineEmits([ 'close' ]);
 
@@ -16,23 +18,30 @@ const startNode = {
     class: 'unknown'
 };
 
-let root = null;
+// Finds conversation start
+function getRoot() {
+    const notRoot = new Set();
+    for (let edge of edges) notRoot.add(edge.to);
 
-// Determines root
-const notRoot = new Set();
-
-for (let edge of edges) notRoot.add(edge.to);
-for (let node of nodes) {
-    if (notRoot.has(node.id)) continue;
-    root = node;
-    break;
+    for (let node of nodes) {
+        if (notRoot.has(node.id)) continue;
+        return node;
+    }
 }
 
-const curNode = ref(root ? root : startNode);
-const history = ref([ startNode ]);
-const replies = ref([]);
+// Adds the starting node to the tree
+const root = getRoot();
+nodes = [ startNode ].concat(nodes);
+if (root) {
+    const edge = { from: startNode.id, to: root.id };
+    edges = [ edge ].concat(edges);
+}
 
-if (root) history.value.push(root);
+const curNode = ref(null);
+const history = ref([]);
+const replies = ref([]);
+const canReply = ref(false);
+
 
 function updateReplies() {
     if (!curNode.value) return;
@@ -42,33 +51,58 @@ function updateReplies() {
     for (let edge of edges) {
         if (edge.from !== curNode.value.id) continue;
 
-        replies.value.push(nodes.find((n) => n.id === edge.to));
+        const node = nodes.find((n) => n.id === edge.to && n.class === 'user');
+        if (node) replies.value.push(node);
     }
+}
+
+function autoScroll() {
+    nextTick(() => {
+        const messages = document.querySelectorAll('.message');
+        messages[messages.length - 1].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+}
+
+function botReply() {
+    canReply.value = true;
 }
 
 function reply(node) {
+    if (node.class === 'user' && !canReply.value) return;
+
+    canReply.value = false;
+    curNode.value = node;
     history.value.push(node);
+    autoScroll();
 
-    //for (let edge of edges) {
-    //    if (edge.from === )
-    //    curNode.value = node;
-    //    updateReplies();
-    //}
-}
+    // Checking if the bot can reply to the current node
+    const botReply = () => {
+        for (let edge of edges) {
+            if (edge.from === node.id) {
+                const nextNode = nodes.find((n) => n.id === edge.to);
+                if (nextNode.class === 'bot') return nextNode;
+            }
+        }
+    }
 
-function reset() {
-    if (root) {
-        curNode.value = root;
+    const botNode = botReply();
+
+    if (botNode) {
+        setTimeout(() => {
+            reply(botNode);
+        }, 400); //(Math.random() / 2 + 0.5) * 800);
+    } else {
         updateReplies();
+        canReply.value = true;
     }
 }
 
-reset();
+function reset() {
+    reply(startNode);
+    autoScroll();
+}
 
-//nextTick(() => {
-//    const messages = document.querySelectorAll('.message');
-//    messages[messages.length - 1].scrollIntoView({ behavior: 'smooth' });
-//});
+reset();
 </script>
 
 
@@ -77,7 +111,7 @@ reset();
     <div class="chat-header">
         <div class="chat-header-left">
             <font-awesome-icon color="#eeeeee" icon="user-circle" />
-            <p class="chat-title">UKV-botti</p>
+            <p class="chat-title">{{ route.params.project.toUpperCase() }}botti</p>
         </div>
         <div class="chat-header-right">
             <font-awesome-icon @click="reset" color="#eeeeee" icon="redo" />
@@ -85,15 +119,18 @@ reset();
         </div>
     </div>
 
+    <div class="chat-content">
+        <div class="history">
+            <div class="history-bubbles">
+                <ChatBubble v-for="msg in history" :key="msg.id" :owner="msg.class" :message="msg.label"></ChatBubble>
+            </div>
+        </div>
 
-    <div class="history">
-        <ChatBubble v-for="msg in history" :key="msg.id" :owner="msg.class" :message="msg.label"></ChatBubble>
-    </div>
-
-    <div class="controls">
-        <div class="replies">
-            <div v-for="node in replies" :key="node.id" @click="reply(node)" class="reply">
-                {{ node.label }}
+        <div class="controls">
+            <div class="replies">
+                <div v-for="node in replies" :key="node.id" @click="reply(node)" class="reply">
+                    {{ node.label }}
+                </div>
             </div>
         </div>
     </div>
@@ -143,11 +180,20 @@ reset();
     align-self: center;
 }
 
+.chat-content {
+    height: calc(100% - 3.6rem);
+}
+
 .history {
     height: 70%;
     overflow-y: scroll;
+    width: 100%;
+}
+
+.history-bubbles {
     display: flex;
     flex-direction: column;
+    min-height: 100%;
     width: 100%;
 }
 
@@ -161,7 +207,6 @@ reset();
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     gap: 0.5rem;
     padding: 1rem;
 }

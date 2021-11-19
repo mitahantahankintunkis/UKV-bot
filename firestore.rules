@@ -7,7 +7,8 @@ service cloud.firestore {
   
   	match /projects/{projectName} {
     	allow get;
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
+      allow write: if isAdmin() && resource.data.readonly == false;
       //allow read, write: if isProjectOwner(request.auth.uid, projectName) || isAdmin();
     }
   
