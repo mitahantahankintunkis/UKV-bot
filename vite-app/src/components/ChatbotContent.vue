@@ -6,7 +6,7 @@ import { useRoute } from 'vue-router';
 
 
 const route = useRoute();
-const { project } = defineProps([ 'project' ]);
+const { project, editmode } = defineProps([ 'project', 'editmode' ]);
 const emit = defineEmits([ 'close' ]);
 
 let nodes = project.nodes || [];
@@ -30,11 +30,13 @@ function getRoot() {
 }
 
 // Adds the starting node to the tree
-const root = getRoot();
+let root = getRoot();
 nodes = [ startNode ].concat(nodes);
-if (root) {
+
+if (editmode && root) {
     const edge = { from: startNode.id, to: root.id };
     edges = [ edge ].concat(edges);
+    root = startNode;
 }
 
 const curNode = ref(null);
@@ -59,6 +61,8 @@ function updateReplies() {
 function autoScroll() {
     nextTick(() => {
         const messages = document.querySelectorAll('.message');
+        if (messages.length === 0) return;
+
         messages[messages.length - 1].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     });
 }
@@ -98,7 +102,7 @@ function reply(node) {
 }
 
 function reset() {
-    reply(startNode);
+    reply(root);
     autoScroll();
 }
 
@@ -108,7 +112,7 @@ reset();
 
 <template>
 <div class="chat-window">
-    <div class="chat-header">
+    <div class="chat-header" :style="{ 'border-radius': editmode ? '0' : `0.5rem 0.5rem 0 0` }">
         <div class="chat-header-left">
             <font-awesome-icon color="#eeeeee" icon="user-circle" />
             <p class="chat-title">{{ route.params.project.toUpperCase() }}botti</p>

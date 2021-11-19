@@ -87,21 +87,6 @@ input {
     border-bottom: 1px solid gray;
 }
 
-button {
-    height: 2rem;
-    margin-top: 3rem;
-    background-color: rgb(123, 159, 180);
-    border: none;
-    cursor: pointer;
-    text-transform: uppercase;
-    border-radius: 2px;
-    transition: background-color 100ms;
-}
-
-button:hover {
-    background-color: rgb(165, 189, 202);
-}
-
 h4 {
     color: crimson;
     text-align: center;

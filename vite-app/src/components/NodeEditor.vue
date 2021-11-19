@@ -17,7 +17,7 @@ const db = inject('db');
 const props = defineProps([ 'project' ]);
 const promptNode = ref(null);
 const info = ref([ '', 'Ei muutoksia', '' ]);
-const intervalID = ref(-1);
+const saveIntervalID = ref(-1);
 const history = ref(new CircularStack(64));
 
 //let nodes = props.project.nodes || [];
@@ -71,7 +71,6 @@ function saveToHistory() {
     if (prevProject && project.value && statesEqual(prevProject, project.value)) return;
 
     const copy = JSON.parse(JSON.stringify(project.value));
-    console.log(copy);
     history.value.push(copy);
 }
 
@@ -245,7 +244,7 @@ onMounted(() => {
     const svg = container.select('svg.graph-svg');
     const content = svg.select('g');
     const pattern = svg.select('pattern');
-    const domContent = container.select('.graph').append('div');
+    const domContent = container.select('div.graph-dom');
 
     // Initial transforms and container settings
     pattern.attr('patternTransform', `translate(${prevTransform.x} ${prevTransform.y}) scale(${prevTransform.k})`);
@@ -362,8 +361,8 @@ onMounted(() => {
     // Bubbles
 
     // Containers for different elements
-    const bubbleCont = domContent.append('div');
-    const lineCont = content.append('g');
+    const bubbleCont = domContent.select('div.bubble-cont');
+    const lineCont = content.select('g.line-cont');
     
     // Binds background doubleclick
     container.on('dblclick', function(event) {
@@ -504,6 +503,11 @@ onMounted(() => {
             return selection;
         }
 
+        // Makes sure that there is stuff to draw
+        if (!project.value || !project.value.nodes || project.value.nodes.length === 0) {
+            return;
+        }
+
         // Adds, updates, and removes bubbles
         bubbleCont
             .selectAll('div.bubble')
@@ -564,8 +568,8 @@ onMounted(() => {
     redraw();
 
     // Save interval
-    clearInterval(intervalID.value);
-    intervalID.value = setInterval(saveState, 1000 * 30);
+    clearInterval(saveIntervalID.value);
+    saveIntervalID.value = setInterval(saveState, 1000 * 30);
 
     // Binds shortcuts
     document.addEventListener('keydown', function(event) {
@@ -600,10 +604,15 @@ onMounted(() => {
                 </defs>
             
                 <rect x="0" y="0" width="100%" height="100%" fill="url(#dots)"></rect>
-                <g :transform="`translate(${prevTransform.x},${prevTransform.y}) scale(${prevTransform.k})`"></g>
+                <g :transform="`translate(${prevTransform.x},${prevTransform.y}) scale(${prevTransform.k})`">
+                    <g class="line-cont"></g>
+                </g>
             </svg>
 
             <div class="graph">
+                <div class="graph-dom">
+                    <div class="bubble-cont"></div>
+                </div>
             </div>
         </div>
 
@@ -637,7 +646,7 @@ onMounted(() => {
         <NodePrompt v-if="promptNode" @submit="promptSubmit" :node="promptNode"></NodePrompt>
 
         <div class="chatbot">
-            <ChatbotContent :key="history.index" :project="project"></ChatbotContent>
+            <ChatbotContent :key="history.index" :project="project" :editmode="true"></ChatbotContent>
         </div>
     </div>
 </template>

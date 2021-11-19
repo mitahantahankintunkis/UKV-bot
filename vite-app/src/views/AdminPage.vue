@@ -41,21 +41,25 @@ async function setData() {
 async function getData() {
     if (!db || !user) return;
 
+    dataLoaded.value = false;
+
     const projectName = route.params.project;
     const docRef = doc(db, 'projects', projectName);
-    const docSnap = await getDoc(docRef).catch((e) => {
-        console.error(e);
-        router.push('/admin/');
-    });
+    await getDoc(docRef)
+        .then(async (docSnap) => {
+            dataLoaded.value = true;
 
-    dataLoaded.value = true;
+            if (docSnap.exists()) {
+                projectData.value = docSnap.data() || {};
+            } else {
+                projectData.value = await setData();
+            }
 
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        projectData.value = docSnap.data() || {};
-    } else {
-        projectData.value = await setData();
-    }
+        })
+        .catch((e) => {
+            console.error(e);
+            router.push('/admin/');
+        });
 }
 getData();
 
@@ -66,7 +70,7 @@ getData();
     <AdminHeader></AdminHeader>
 
     <main>
-        <router-view :project="projectData" :key="dataLoaded"></router-view>
+        <router-view @refreshData="getData" :project="projectData" :key="dataLoaded"></router-view>
     </main>
 </template>
 

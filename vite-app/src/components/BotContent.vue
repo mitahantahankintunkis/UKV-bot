@@ -8,6 +8,8 @@ const props = defineProps([ 'markdown' ]);
 const html = marked(props.markdown || '');
 const cleanedHtml = DOMPurify.sanitize(html);
 
+console.log(cleanedHtml);
+
 </script>
 
 
@@ -29,6 +31,35 @@ div:deep(h1) {
     color: #333333;
 }
 */
+
+div:deep(img) {
+    width: 80%;
+    height: auto;
+    margin: 1rem auto;
+    display: block;
+    text-align: center;
+}
+
+div:deep(ul) {
+    list-style-position: inside;
+}
+
+div:deep(h1),
+div:deep(h2),
+div:deep(h3),
+div:deep(h4),
+div:deep(h5) {
+    font-weight: 600;
+    color: #333;
+}
+
+div:deep(h1),
+div:deep(h2),
+div:deep(h3),
+div:deep(h4),
+div:deep(h5) {
+    margin: 1em 0;
+}
 </style>
 
 

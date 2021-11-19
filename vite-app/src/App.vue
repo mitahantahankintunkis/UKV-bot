@@ -30,4 +30,24 @@
     margin: 0;
     box-sizing: border-box;
 }
+
+
+button {
+    height: 2rem;
+    margin-top: 1rem;
+    background-color: rgb(123, 159, 180);
+    background-color: #008c7b;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    border-radius: 2px;
+    transition: background-color 100ms;
+    padding: 0 1rem;
+    color: white;
+}
+
+button:hover {
+    background-color: rgb(165, 189, 202);
+    background-color: #00a99a;
+}
 </style>
