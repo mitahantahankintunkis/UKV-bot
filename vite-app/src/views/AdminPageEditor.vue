@@ -46,6 +46,10 @@ function load() {
 
 load();
 
+onUnmounted(() => {
+    clearInterval(saveIntervalID.value);
+});
+
 clearInterval(saveIntervalID.value);
 saveIntervalID.value = setInterval(save, 1000 * 10);
 

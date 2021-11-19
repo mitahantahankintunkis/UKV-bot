@@ -235,7 +235,10 @@ function redo() {
     redraw();
 }
 
-onBeforeUnmount(saveState);
+onBeforeUnmount(() => {
+    saveState();
+    clearInterval(saveIntervalID.value);
+});
 
 onMounted(() => {
     console.log('remount');

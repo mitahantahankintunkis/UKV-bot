@@ -8,8 +8,6 @@ const props = defineProps([ 'markdown' ]);
 const html = marked(props.markdown || '');
 const cleanedHtml = DOMPurify.sanitize(html);
 
-console.log(cleanedHtml);
-
 </script>
 
 
@@ -19,19 +17,6 @@ console.log(cleanedHtml);
 
 
 <style scoped>
-/*
-#app {
-    font-family: 'Poppins', sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-div:deep(h1) {
-    font-weight: 600;
-    color: #333333;
-}
-*/
-
 div:deep(img) {
     width: 80%;
     height: auto;

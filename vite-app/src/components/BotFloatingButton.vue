@@ -14,7 +14,7 @@ const emit = defineEmits(['click']);
 .circle-button > svg {
     width: 2.8rem;
     height: 2.8rem;
-    padding: 1.1rem;
+    margin: 1.1rem;
 }
 
 .circle-button {
