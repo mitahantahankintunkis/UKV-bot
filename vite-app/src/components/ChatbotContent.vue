@@ -56,6 +56,12 @@ function updateReplies() {
         const node = nodes.find((n) => n.id === edge.to && n.class === 'user');
         if (node) replies.value.push(node);
     }
+
+    // Sorts replies
+    replies.value.sort((a, b) => {
+        if (a.pos.y === b.pos.y) return a.pos.x > b.pos.x;
+        return a.pos.y > b.pos.y;
+    })
 }
 
 function autoScroll() {
@@ -120,7 +126,7 @@ reset();
         </div>
         <div class="chat-header-right">
             <font-awesome-icon @click="reset" color="#eeeeee" icon="redo" />
-            <font-awesome-icon @click="emit('close')" color="#eeeeee" icon="chevron-down" />
+            <font-awesome-icon @click="emit('close')" color="#eeeeee" icon="times" />
         </div>
     </div>
 
@@ -146,6 +152,7 @@ reset();
 <style scoped>
 .chat-window {
     width: 30rem;
+    max-width: calc(100vw - 2rem);
     height: 100%;
     background: white;
     overflow: hidden;

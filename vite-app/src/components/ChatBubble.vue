@@ -28,7 +28,7 @@ function parseMessage() {
 <style scoped>
 .message {
     max-width: 70%;
-    margin: 0.5rem;
+    margin: 1rem;
     padding: 0.5rem 1rem;
     color: #003a49;
 

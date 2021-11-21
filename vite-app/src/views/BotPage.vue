@@ -4,7 +4,7 @@ import BotHeader from '../components/BotHeader.vue';
 import BotFloatingButton from '../components/BotFloatingButton.vue';
 import ChatbotContent from '../components/ChatbotContent.vue';
 import { ref } from '@vue/reactivity';
-import { inject, onBeforeMount, onMounted } from '@vue/runtime-core';
+import { inject, nextTick, onBeforeMount, onMounted } from '@vue/runtime-core';
 import { useRoute } from 'vue-router';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -56,6 +56,11 @@ getData();
 function toggleChat() {
     chatOpen.value = !chatOpen.value;
 }
+
+// Opens the chat
+nextTick(() => {
+    chatOpen.value = true;
+});
 </script>
 
 
@@ -65,10 +70,13 @@ function toggleChat() {
         <div v-if="!dataLoaded">Ladataan...</div>
         <BotContent v-else :markdown="project.page"></BotContent>
 
-        <div v-if="chatOpen" class="chatbot-window">
-            <ChatbotContent @close="toggleChat" :project="project" :editmode="false"></ChatbotContent>
-        </div>
-        <BotFloatingButton v-else @click="toggleChat"></BotFloatingButton>
+        <BotFloatingButton @click="toggleChat"></BotFloatingButton>
+
+        <transition name="slide-in">
+            <div v-if="chatOpen" class="chatbot-window">
+                <ChatbotContent @close="toggleChat" :project="project" :key="project.timestamp" :editmode="false"></ChatbotContent>
+            </div>
+        </transition>
     </main>
 </template>
 
@@ -84,7 +92,26 @@ main {
     bottom: 1rem;
     right: 1rem;
     height: calc(100vh - 2rem);
-    border-radius: 1rem;
+    max-height: 50rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+    animation: slide-in 200ms ease forwards 0s;
     box-shadow: #c3c3c3 0px 0px 8px;
 }
+
+
+.slide-in-enter-active, .slide-in-leave-active {
+    transition: bottom 200ms ease;
+}
+
+.slide-in-enter-from, .slide-in-leave-to {
+    bottom: -100vh;
+}
+
+
+/*
+@keyframes slide-in {
+    from { top: 100vh; }
+    to { top: 1rem; }
+}
+*/
 </style>
