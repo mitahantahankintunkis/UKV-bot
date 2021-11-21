@@ -17,6 +17,10 @@ const cleanedHtml = DOMPurify.sanitize(html);
 
 
 <style scoped>
+div {
+    margin-bottom: 5rem;
+}
+
 div:deep(img) {
     width: 80%;
     height: auto;
@@ -44,6 +48,10 @@ div:deep(h3),
 div:deep(h4),
 div:deep(h5) {
     margin: 1em 0;
+}
+
+div:deep(p) {
+    margin: 1rem 0;
 }
 </style>
 
