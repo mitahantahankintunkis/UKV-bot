@@ -37,6 +37,7 @@ button {
     margin-top: 1rem;
     background-color: rgb(123, 159, 180);
     background-color: #008c7b;
+    background-color: rgb(123, 159, 180);
     border: none;
     cursor: pointer;
     text-transform: uppercase;
@@ -47,7 +48,7 @@ button {
 }
 
 button:hover {
-    background-color: rgb(165, 189, 202);
     background-color: #00a99a;
+    background-color: rgb(165, 189, 202);
 }
 </style>

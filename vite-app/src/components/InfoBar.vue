@@ -18,7 +18,7 @@ const props = defineProps([ 'info' ]);
     width: 100%;
     display: flex;
     justify-content: space-between;
-    padding: 0 1rem;
+    padding: 0 2rem;
     background-color: white;
     border-top: 1px solid #aaa;
 }

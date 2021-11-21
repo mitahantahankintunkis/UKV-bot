@@ -2,35 +2,18 @@
 import * as d3 from 'd3';
 import CircularStack from '../circularStack.js';
 import DOMPurify from 'dompurify';
-import InfoBar from './InfoBar.vue';
 import NodePrompt from './NodePrompt.vue';
 import ChatbotContent from './ChatbotContent.vue';
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from '@firebase/firestore';
-import { inject, onBeforeUnmount, onMounted, ref } from '@vue/runtime-core';
+import { onMounted, ref } from '@vue/runtime-core';
 import { marked } from 'marked';
 import { nanoid } from 'nanoid';
-import { useRoute } from 'vue-router';
 
 
-const route = useRoute();
-const db = inject('db');
+const emit = defineEmits([ 'download', 'upload', 'load', 'save', 'info' ]);
 const props = defineProps([ 'project' ]);
 const promptNode = ref(null);
-const info = ref([ '', 'Ei muutoksia', '' ]);
-const saveIntervalID = ref(-1);
 const history = ref(new CircularStack(64));
 
-//let nodes = props.project.nodes || [];
-//let edges = props.project.edges || [];
-const project = ref(props.project || {
-    nodes: [],
-    edges: [],
-    page: '# TODO',
-});
-
-//if (project.value.nodes && project.value.nodes.length > 0) {
-//    history.value.push(project.value);
-//}
 
 const prevTransform = ref(
     JSON.parse(localStorage.getItem('treeview-transform')) ||
@@ -67,10 +50,9 @@ function saveToHistory() {
     };
 
     const prevProject = history.value.head();
-    console.log('saving state');
-    if (prevProject && project.value && statesEqual(prevProject, project.value)) return;
+    if (prevProject && props.project && statesEqual(prevProject, props.project)) return;
 
-    const copy = JSON.parse(JSON.stringify(project.value));
+    const copy = JSON.parse(JSON.stringify(props.project));
     history.value.push(copy);
 }
 
@@ -88,14 +70,14 @@ function promptSubmit(value) {
 
 // Centers the graph on the screen
 function center() {
-    if (project.value.nodes.length === 0) return;
+    if (props.project.nodes.length === 0) return;
 
     let minX = 1e9;
     let minY = 1e9;
     let maxX = -1e9;
     let maxY = -1e9;
 
-    for (let node of project.value.nodes) {
+    for (let node of props.project.nodes) {
         let x0 = node.pos.x * size;
         let y0 = node.pos.y * size;
         let x1 = node.pos.x * size + size * width;
@@ -107,142 +89,38 @@ function center() {
         if (maxY < y1) maxY = y1;
     }
 
-    info.value[2] = 'TODO - Toteuttaminen kesken';
-}
-
-
-async function uploadData() {
-    if (props.project && props.project.readonly) {
-        info.value[2] = 'Ei onnistu. Projekti on lukutilassa';
-        return;
-    }
-
-    const projectId = route.params.project;
-    const docRef = doc(db, 'projects', projectId);
-
-    info.value[1] = 'Lähetetään...';
-
-    await updateDoc(docRef, {
-        nodes: project.value.nodes,
-        edges: project.value.edges,
-        timestamp: serverTimestamp(),
-
-    }).then(() => {
-        info.value[1] = 'Lähetetty pilveen';
-
-    }).catch((e) => {
-        console.error(e);
-        info.value[2] = 'Virhe lähetettäessä pilveen';
-    });
-}
-
-
-async function downloadData() {
-    if (!db) return;
-
-    info.value[1] = 'Ladataan...';
-
-    const projectId = route.params.project;
-    const docRef = doc(db, 'projects', projectId);
-    const docSnap = await getDoc(docRef)
-        .then((docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                const cloudProject = docSnap.data() || {};
-
-                info.value[1] = 'Ladattu pilvestä';
-
-                saveToHistory();
-
-                // Hacky way of reseting the graph
-                project.value.nodes = [];
-                project.value.edges = [];
-                redraw();
-
-                console.log(cloudProject);
-                project.value = cloudProject;
-                redraw();
-            } else {
-                info.value[1] = 'Projektia ei löytynyt pilvestä';
-            }
-
-        }).catch((e) => {
-            console.error(e);
-            info.value[2] = 'Virhe ladattaessa pilvestä';
-        });
-}
-
-
-// Loads from localStorage
-function loadGraph() {
-    try {
-        const storedProject = JSON.parse(localStorage.getItem('project'));
-
-        if (storedProject) {
-            info.value[1] = 'Ladattu tietokoneelta';
-
-            saveToHistory();
-            project.value.nodes = storedProject.nodes || [];
-            project.value.edges = storedProject.edges || [];
-
-            redraw();
-
-            localStorage.removeItem('graph');
-        }
-    } catch {
-        return;
-    }
-}
-
-
-// Saves state to localStorage
-function saveState() {
-    console.log('saved');
-
-    info.value[1] = 'Tallennettu';
-
-    // Saves the current camera transformation
-    localStorage.setItem('treeview-transform', JSON.stringify(prevTransform.value));
-
-    if (project.value.nodes && project.value.nodes.length > 0) {
-        localStorage.setItem('project', JSON.stringify(project.value));
-    }
+    emit('info', 1, 'TODO - Toteuttaminen kesken');
 }
 
 function undo() {
-    info.value[2] = 'Erittäin buginen, ei kannata luottaa';
+    emit('info', 1, 'TODO - Toteuttaminen kesken');
+    return;
 
     const prev = history.value.pop();
 
     if (prev) {
-        project.value.nodes = prev.nodes || [];
-        project.value.edges = prev.edges || [];
+        props.project.nodes = prev.nodes || [];
+        props.project.edges = prev.edges || [];
     }
 
     redraw();
 }
 
 function redo() {
-    info.value[2] = 'Erittäin buginen, ei kannata luottaa';
+    emit('info', 1, 'TODO - Toteuttaminen kesken');
+    return;
 
     const prev = history.value.unpop();
 
     if (prev) {
-        project.value.nodes = prev.nodes || [];
-        project.value.edges = prev.edges || [];
+        props.project.nodes = prev.nodes || [];
+        props.project.edges = prev.edges || [];
     }
 
     redraw();
 }
 
-onBeforeUnmount(() => {
-    saveState();
-    clearInterval(saveIntervalID.value);
-});
-
 onMounted(() => {
-    console.log('remount');
-
     const container = d3.select('.graph-cont')
     const svg = container.select('svg.graph-svg');
     const content = svg.select('g');
@@ -250,11 +128,11 @@ onMounted(() => {
     const domContent = container.select('div.graph-dom');
 
     // Initial transforms and container settings
-    pattern.attr('patternTransform', `translate(${prevTransform.x} ${prevTransform.y}) scale(${prevTransform.k})`);
+    pattern.attr('patternTransform', `translate(${prevTransform.value.x} ${prevTransform.value.y}) scale(${prevTransform.value.k})`);
     domContent
         .style('position', 'relative')
         .style('transform-origin', '0px 0px')
-        .style('transform', `translate(${prevTransform.x}px,${prevTransform.y}px) scale(${prevTransform.k})`)
+        .style('transform', `translate(${prevTransform.value.x}px,${prevTransform.value.y}px) scale(${prevTransform.value.k})`)
         .style('width', 'fit-content')
         .style('height', 'fit-content');
 
@@ -283,41 +161,41 @@ onMounted(() => {
 
     function addEdge(from, to) {
         if (from === to) return;
-        if (project.value.edges.find((e) => {
+        if (props.project.edges.find((e) => {
             return (e.from === from && e.to === to) ||
                 (e.to === from && e.from === to);
         })) return;
 
-        info.value[1] = 'Tallentamattomia muutoksia';
+        emit('info', 0, 'Tallentamattomia muutoksia');
 
         saveToHistory();
-        project.value.edges = project.value.edges.concat([ { from, to } ]);
+        props.project.edges = props.project.edges.concat([ { from, to } ]);
 
         redraw();
     }
 
     function removeEdge(edge) {
-        info.value[1] = 'Tallentamattomia muutoksia';
+        emit('info', 0, 'Tallentamattomia muutoksia');
 
         saveToHistory();
-        project.value.edges = project.value.edges.filter((e) => !(e.from === edge.from && e.to === edge.to));
+        props.project.edges = props.project.edges.filter((e) => !(e.from === edge.from && e.to === edge.to));
 
         redraw();
     }
 
     function addNode(node) {
-        info.value[1] = 'Tallentamattomia muutoksia';
+        emit('info', 0, 'Tallentamattomia muutoksia');
 
         saveToHistory();
-        project.value.nodes = project.value.nodes.concat([ node ]);
+        props.project.nodes = props.project.nodes.concat([ node ]);
     }
 
     function removeNode(node) {
-        info.value[1] = 'Tallentamattomia muutoksia';
+        emit('info', 0, 'Tallentamattomia muutoksia');
 
         saveToHistory();
-        project.value.edges = project.value.edges.filter((e) => !(e.from === node.id || e.to === node.id));
-        project.value.nodes = project.value.nodes.filter((n) => n.id !== node.id);
+        props.project.edges = props.project.edges.filter((e) => !(e.from === node.id || e.to === node.id));
+        props.project.nodes = props.project.nodes.filter((n) => n.id !== node.id);
 
         redraw();
     }
@@ -416,7 +294,7 @@ onMounted(() => {
                 if (classes.contains('bubble')) {
                     to = attributes.getNamedItem('node-id').value;
                     if (to !== from) {
-                        const toNode = project.value.nodes.find((n) => n.id === to);
+                        const toNode = props.project.nodes.find((n) => n.id === to);
 
                         x = toNode.pos.x + (width / 2);
                         y = toNode.pos.y;
@@ -429,7 +307,7 @@ onMounted(() => {
             } else {
                 d.pos.x = Math.round(x - width / 2);
                 d.pos.y = Math.round(y - d.height / size / 2);
-                info.value[1] = 'Tallentamattomia muutoksia';
+                emit('info', 0, 'Tallentamattomia muutoksia');
             }
 
             redraw();
@@ -487,19 +365,19 @@ onMounted(() => {
         function lineUpdate(selection) {
             selection
                 .attr('x1', (d) => {
-                    const node = project.value.nodes.find((n) => n.id === d.from);
+                    const node = props.project.nodes.find((n) => n.id === d.from);
                     return node.pos.x * size + (width / 2) * size;
                 })
                 .attr('y1', (d) => {
-                    const node = project.value.nodes.find((n) => n.id === d.from);
+                    const node = props.project.nodes.find((n) => n.id === d.from);
                     return node.pos.y * size + node.height;
                 })
                 .attr('x2', (d) => {
-                    const node = project.value.nodes.find((n) => n.id === d.to);
+                    const node = props.project.nodes.find((n) => n.id === d.to);
                     return node.pos.x * size + (width / 2) * size;
                 })
                 .attr('y2', (d) => {
-                    const node = project.value.nodes.find((n) => n.id === d.to);
+                    const node = props.project.nodes.find((n) => n.id === d.to);
                     return node.pos.y * size;
                 });
 
@@ -507,14 +385,14 @@ onMounted(() => {
         }
 
         // Makes sure that there is stuff to draw
-        if (!project.value || !project.value.nodes || project.value.nodes.length === 0) {
+        if (!props.project || !props.project.nodes || props.project.nodes.length === 0) {
             return;
         }
 
         // Adds, updates, and removes bubbles
         bubbleCont
             .selectAll('div.bubble')
-            .data(project.value.nodes || [], (d) => '' + d.id)
+            .data(props.project.nodes || [], (d) => '' + d.id)
             .join(
                 (enter) => {
                     const bubbles = enter.append('div')
@@ -544,7 +422,7 @@ onMounted(() => {
 
         lineCont
             .selectAll('line')
-            .data(project.value.edges || [], (d) => `${d.from}-${d.to}`)
+            .data(props.project.edges || [], (d) => `${d.from}-${d.to}`)
             .join(
                 (enter) => {
                     const lines = enter.append('line')
@@ -567,12 +445,7 @@ onMounted(() => {
                 });
     };
 
-    loadGraph();
     redraw();
-
-    // Save interval
-    clearInterval(saveIntervalID.value);
-    saveIntervalID.value = setInterval(saveState, 1000 * 30);
 
     // Binds shortcuts
     document.addEventListener('keydown', function(event) {
@@ -581,9 +454,6 @@ onMounted(() => {
 
       } else if (event.ctrlKey && event.shiftKey && event.key === 'z') {
           redo();
-
-      } else if (event.ctrlKey && event.key === 's') {
-          saveState();
       }
     });
 });
@@ -621,17 +491,17 @@ onMounted(() => {
 
         <div class="controls">
 
-            <div @click="downloadData">
+            <div @click="emit('download')">
                 <font-awesome-icon class="icon" icon="download" />
                 <div class="tooltip">Lataa pilvestä</div>
             </div>
 
-            <div @click="uploadData">
+            <div @click="emit('upload')">
                 <font-awesome-icon class="icon" icon="upload" />
                 <div class="tooltip">Lähetä pilveen/päivitä botti</div>
             </div>
 
-            <div @click="saveState">
+            <div @click="emit('save')">
                 <font-awesome-icon class="icon" icon="save" />
                 <div class="tooltip">Tallenna tietokoneelle</div>
             </div>
@@ -642,14 +512,12 @@ onMounted(() => {
             </div>
         </div>
 
-        <div class="infobar">
-            <InfoBar :info="info"></InfoBar>
-        </div>
-
-        <NodePrompt v-if="promptNode" @submit="promptSubmit" :node="promptNode"></NodePrompt>
-
         <div class="chatbot">
             <ChatbotContent :key="history.index" :project="project" :editmode="true"></ChatbotContent>
+        </div>
+
+        <div class="node-prompt">
+            <NodePrompt v-if="promptNode" @submit="promptSubmit" :node="promptNode"></NodePrompt>
         </div>
     </div>
 </template>
@@ -658,7 +526,7 @@ onMounted(() => {
 <style scoped>
 .cont {
     width: 100%;
-    height: calc(100vh - 3.6rem);
+    height: calc(100vh - 3.6rem - 2rem);
     overflow: hidden;
     position: relative;
 }
@@ -749,13 +617,6 @@ svg.graph-svg, .graph {
 
 .controls > *:hover .tooltip {
     opacity: 1;
-}
-
-.infobar {
-    position: absolute;
-    left: 0;
-    bottom: 0px;
-    right: 30rem;
 }
 
 .graph:deep(.bubble) {

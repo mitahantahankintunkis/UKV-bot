@@ -143,19 +143,8 @@ textarea {
     justify-content: end;
 }
 
-button {
-    height: 2rem;
-    padding: 0 1rem;
-    margin-top: 1rem;
-    background-color: rgb(123, 159, 180);
-    border: none;
-    cursor: pointer;
-    text-transform: uppercase;
-    border-radius: 2px;
-    transition: background-color 100ms;
-}
-
 .btn-cancel {
     background-color: #eee;
+    color: #444;
 }
 </style>

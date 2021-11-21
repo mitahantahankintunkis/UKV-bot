@@ -8,7 +8,7 @@ service cloud.firestore {
   	match /projects/{projectName} {
     	allow get;
       allow read: if isAdmin();
-      allow write: if isAdmin() && resource.data.readonly == false;
+      allow write: if isAdmin() && canWrite();
       //allow read, write: if isProjectOwner(request.auth.uid, projectName) || isAdmin();
     }
   
@@ -19,6 +19,12 @@ service cloud.firestore {
     // TODO - add this to the database
     function isAdmin() {
     	return request.auth.uid == "5VuJbHtKebdwXLcPNbIJpzwZHZo2";
+    }
+    
+    function canWrite() {
+    	return resource == null ||
+      				resource.data.readonly == null ||
+      				resource.data.readonly == false;
     }
     
     //match /conversations/{conversation} {

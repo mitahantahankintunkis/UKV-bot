@@ -3,9 +3,17 @@ import { getUser } from '../utils';
 
 
 const routes = [
-    { path: '/hanke/:project', component: () => import('../views/BotPage.vue') },
     { path: '/login', component: () => import('../views/LoginPage.vue') },
     { path: '/logout', component: () => import('../views/LogoutPage.vue') },
+
+    {
+        path: '/hanke/:project',
+        component: () => import('../views/BotPage.vue'),
+        //children: [
+        //    { path: '', component: () => import('../views/AdminPageGeneral.vue'),   props: { project: {} }, },
+        //],
+    },
+
     {
         path: '/admin/:project',
         component: () => import('../views/AdminPage.vue'),

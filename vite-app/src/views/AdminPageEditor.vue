@@ -1,86 +1,12 @@
 <script setup>
 import BotContent from '../components/BotContent.vue';
-import DOMPurify from 'dompurify';
-import Markdown from '../components/Markdown.vue';
-import { marked } from 'marked';
-import { ref } from '@vue/reactivity';
-import InfoBar from '../components/InfoBar.vue';
-import { useRoute } from 'vue-router';
-import { inject, onUnmounted } from '@vue/runtime-core';
-import { doc, serverTimestamp, updateDoc } from '@firebase/firestore';
 
 
-const emit = defineEmits([ 'refreshData' ]);
+const emit = defineEmits([ 'download', 'upload', 'load', 'save', 'info' ]);
 const props = defineProps([ 'project' ]);
-const route = useRoute();
-const db = inject('db');
-
-const info = ref([ '', 'Ei muutoksia', '' ]);
-const markdown = ref(props.project.page || '# TODO');
-const saveIntervalID = ref(-1);
-
-//`# Esimerkki markdownin syntaksista
-//## Alaotsikko
-//### Alempi otsikko
-//- Lista
-//- Linkki [nimi](example.com)
-//- Kuva ![kuvaus jos ei lataudu](https://i.imgur.com/4vNedV6.jpeg)`);
 
 function textChanged(e) {
-    markdown.value = e.target.value;
-    info.value[1] = 'Tallentamattomia muutoksia';
-}
-
-function save() {
-    localStorage.setItem(`${route.params.project}-page`, markdown.value);
-    info.value[1] = 'Tallennettu tietokoneen muistiin';
-}
-
-function load() {
-    const page = localStorage.getItem(`${route.params.project}-page`);
-    if (page) {
-        markdown.value = page;
-        info.value[1] = 'Kopio ladattu tietokoneen muistista';
-    }
-}
-
-load();
-
-onUnmounted(() => {
-    clearInterval(saveIntervalID.value);
-});
-
-clearInterval(saveIntervalID.value);
-saveIntervalID.value = setInterval(save, 1000 * 10);
-
-function download() {
-    localStorage.removeItem(`${route.params.project}-page`);
-    emit('refreshData');
-}
-
-async function upload() {
-    if (props.project && props.project.readonly) {
-        info.value[2] = 'Ei onnistu. Projekti on lukutilassa';
-        return;
-    }
-
-    const projectId = route.params.project;
-    const docRef = doc(db, 'projects', projectId);
-
-    info.value[1] = 'Lähetetään...';
-
-    await updateDoc(docRef, {
-        page: markdown.value,
-        timestamp: serverTimestamp(),
-
-    }).then(() => {
-        save();
-        info.value[1] = 'Sivusto päivitetty';
-
-    }).catch((e) => {
-        console.error(e);
-        info.value[2] = 'Virhe lähetettäessä pilveen';
-    });
+    emit('info', 0, 'Tallentamattomia muutoksia');
 }
 
 </script>
@@ -99,24 +25,20 @@ async function upload() {
         </p>
 
         <div class="controls">
-            <button @click="download">Lataa</button>
-            <button @click="upload">Tallenna</button>
+            <button @click="emit('download')">Lataa</button>
+            <button @click="emit('upload')">Tallenna</button>
         </div>
     </div>
 
     <div class="editor">
         <div class="left">
-            <textarea @input="textChanged" autocomplete="off" autocorrect="off" spellcheck="false" v-model="markdown"></textarea>
+            <textarea @input="textChanged" autocomplete="off" autocorrect="off" spellcheck="false" v-model="props.project.page"></textarea>
         </div>
         <div class="right">
             <div class="rendered">
-                <BotContent :key="markdown" :markdown="markdown"></BotContent>
+                <BotContent :key="props.project.page" :markdown="props.project.page"></BotContent>
             </div>
         </div>
-    </div>
-
-    <div class="infobar">
-        <InfoBar :info="info"></InfoBar>
     </div>
 </template>
 
@@ -155,10 +77,15 @@ textarea {
     text-align: center;
 }
 
-.infobar {
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    right: 0;
+.controls {
+    display: flex;
+    align-content: center;
+    width: fit-content;
+    margin: 0 auto;
+    gap: 0.5rem;
+}
+
+button {
+    width: 10rem;
 }
 </style>

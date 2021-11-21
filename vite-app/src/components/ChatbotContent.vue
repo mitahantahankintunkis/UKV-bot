@@ -72,6 +72,7 @@ function botReply() {
 }
 
 function reply(node) {
+    if (!node) return;
     if (node.class === 'user' && !canReply.value) return;
 
     canReply.value = false;
