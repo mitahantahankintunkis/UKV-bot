@@ -6,9 +6,15 @@
         <img class="logo" src="../assets/ukv.png" alt="logo">
         <div class="links">
             <ul>
-                <li><a href="#">UKV</a></li>
-                <li><a href="#">About</a></li>
-                <li><a href="#">GDPR</a></li>
+                <li>
+                    <router-link :to="{ name: 'project' }">Hanke</router-link>
+                </li>
+                <li>
+                    <router-link :to="{ name: 'ukv' }">UKV</router-link>
+                </li>
+                <li>
+                    <router-link :to="{ name: 'gdpr' }">Tietosuojaseloste</router-link>
+                </li>
             </ul>
         </div>
     </header>

@@ -1,5 +1,4 @@
 <script setup>
-import BotContent from '../components/BotContent.vue';
 import BotHeader from '../components/BotHeader.vue';
 import BotFloatingButton from '../components/BotFloatingButton.vue';
 import ChatbotContent from '../components/ChatbotContent.vue';
@@ -68,7 +67,8 @@ nextTick(() => {
     <BotHeader></BotHeader>
     <main>
         <div v-if="!dataLoaded">Ladataan...</div>
-        <BotContent v-else :markdown="project.page"></BotContent>
+
+        <router-view v-else :project="project" :key="project.timestamp"></router-view>
 
         <BotFloatingButton @click="toggleChat"></BotFloatingButton>
 
