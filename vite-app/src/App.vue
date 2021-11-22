@@ -31,10 +31,8 @@
     box-sizing: border-box;
 }
 
-
 button {
     height: 2rem;
-    margin-top: 1rem;
     background-color: rgb(123, 159, 180);
     background-color: #008c7b;
     background-color: rgb(123, 159, 180);
@@ -50,5 +48,9 @@ button {
 button:hover {
     background-color: #00a99a;
     background-color: rgb(165, 189, 202);
+}
+
+ul {
+    list-style-position: inside;
 }
 </style>

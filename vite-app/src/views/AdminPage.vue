@@ -43,24 +43,26 @@ function saveProject(silent=false) {
 function loadProject() {
     if (!user || !user.uid) {
         setInfo(1, 'Virheelliset tunnukset');
-        return;
+        return false;
     }
 
     const str = localStorage.getItem(`${user.uid}-project-${projectName}`);
 
     if (!str) {
         setInfo(0, 'Tallennettua projektia ei ole olemassa');
-        return;
+        return false;
     }
 
     const json = JSON.parse(str);
 
     if (!json) {
         setInfo(1, 'Virhe luettaessa projektia');
-        return;
+        return false;
     }
     setInfo(0, 'Projekti ladattu tietokoneen muistista');
     projectData.value = json;
+
+    return true;
 }
 
 // Uploads the project to the cloud
@@ -147,7 +149,8 @@ async function downloadProject() {
             router.push('/admin/');
         });
 }
-downloadProject();
+
+if (!loadProject()) downloadProject();
 
 // Autosaving 
 onUnmounted(() => {

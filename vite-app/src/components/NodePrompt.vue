@@ -39,6 +39,7 @@ function submit() {
                     <select name="node-type" id="node-type" v-model="type">
                         <option value="bot">Botin viesti</option>
                         <option value="user">Käyttäjän viesti</option>
+                        <option value="contacts">Yhteystietolomake</option>
                     </select>
                 </div>
             </div>

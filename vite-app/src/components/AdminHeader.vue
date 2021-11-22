@@ -18,10 +18,10 @@ const user = getUser();
 
         <div>
             <ul>
-                <li><router-link to="./">Hallinta</router-link></li>
-                <li><router-link to="./site">Sivusto</router-link></li>
-                <li><router-link to="./bot">Botti</router-link></li>
-                <li><router-link to="./analytics">Tilastotieto</router-link></li>
+                <li><router-link :to="{ name: 'admin-management' }">Hallinta</router-link></li>
+                <li><router-link :to="{ name: 'admin-editor' }">Sivusto</router-link></li>
+                <li><router-link :to="{ name: 'admin-graph' }">Botti</router-link></li>
+                <li><router-link :to="{ name: 'admin-anal' }">Tilastotieto</router-link></li>
             </ul>
         </div>
 

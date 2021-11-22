@@ -2,6 +2,7 @@
 import BotHeader from '../components/BotHeader.vue';
 import BotFloatingButton from '../components/BotFloatingButton.vue';
 import ChatbotContent from '../components/ChatbotContent.vue';
+import ContactPrompt from '../components/ContactPrompt.vue';
 import { ref } from '@vue/reactivity';
 import { inject, nextTick, onBeforeMount, onMounted } from '@vue/runtime-core';
 import { useRoute } from 'vue-router';
@@ -12,11 +13,24 @@ import { doc, getDoc } from 'firebase/firestore';
 const chatOpen = ref(false);
 const dataLoaded = ref(false);
 const project = ref({});
+const promptOpen = ref(false);
 
 const db = inject('db');
 const route = useRoute();
 const projectName = route.params.project;
 
+const contactCallback = ref(null);
+
+
+function contactSubmit(data) {
+    if (contactCallback.value) contactCallback.value(data);
+    promptOpen.value = false;
+}
+
+function askContacts(callback) {
+    contactCallback.value = callback;
+    promptOpen.value = true;
+}
 
 // Gets project settings from firestore
 async function getData() {
@@ -74,10 +88,12 @@ nextTick(() => {
 
         <transition name="slide-in">
             <div v-if="chatOpen" class="chatbot-window">
-                <ChatbotContent @close="toggleChat" :project="project" :key="dataLoaded" :editmode="false"></ChatbotContent>
+                <ChatbotContent @close="toggleChat" @askContacts="askContacts" :project="project" :key="dataLoaded" :editmode="false"></ChatbotContent>
             </div>
         </transition>
     </main>
+
+    <ContactPrompt v-if="promptOpen" @submit="contactSubmit"></ContactPrompt>
 </template>
 
 

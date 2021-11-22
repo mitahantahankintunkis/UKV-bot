@@ -1,6 +1,8 @@
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
 import plainText from 'vite-plugin-plain-text';
+
+
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -13,4 +15,4 @@ export default defineConfig({
     build: {
         outDir: '../dist',
     },
-})
+});

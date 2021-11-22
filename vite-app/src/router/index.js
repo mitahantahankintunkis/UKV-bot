@@ -23,10 +23,10 @@ const routes = [
             loginRequired: true
         },
         children: [
-            { path: '',          component: () => import('../views/AdminPageGeneral.vue'),   props: { project: {} }, },
-            { path: 'site',      component: () => import('../views/AdminPageEditor.vue'),    props: { project: {} }, },
-            { path: 'bot',       component: () => import('../views/AdminPageGraph.vue'),     props: { project: {} }, },
-            { path: 'analytics', component: () => import('../views/AdminPageAnalytics.vue'), props: { project: {} }, },
+            { path: '',          name: 'admin-management', component: () => import('../views/AdminPageGeneral.vue'),   props: { project: {} }, },
+            { path: 'site',      name: 'admin-editor',     component: () => import('../views/AdminPageEditor.vue'),    props: { project: {} }, },
+            { path: 'bot',       name: 'admin-graph',      component: () => import('../views/AdminPageGraph.vue'),     props: { project: {} }, },
+            { path: 'analytics', name: 'admin-anal',       component: () => import('../views/AdminPageAnalytics.vue'), props: { project: {} }, },
         ],
     },
     {

@@ -62,6 +62,8 @@ function promptSubmit(value) {
         saveToHistory();
         promptNode.value.label = value.label;
         promptNode.value.class = value.class;
+
+        emit('info', 0, 'Tallentamattomia muutoksia');
     }
 
     promptNode.value = null;
@@ -644,6 +646,13 @@ svg.graph-svg, .graph {
 .graph:deep(.user-bubble) {
     background-color: #eee;
     border: 2px solid #ddd;
+    border-radius: 1rem 1rem 0 1rem;
+    text-align: start;
+}
+
+.graph:deep(.contacts-bubble) {
+    background-color: #cbb6df;
+    border: 2px solid #b287da;
     border-radius: 1rem 1rem 0 1rem;
     text-align: start;
 }

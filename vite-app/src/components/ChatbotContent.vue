@@ -1,13 +1,19 @@
 <script setup>
 import ChatBubble from './ChatBubble.vue';
 import { ref } from '@vue/reactivity';
-import { nextTick } from '@vue/runtime-core';
+import { inject, nextTick } from '@vue/runtime-core';
 import { useRoute } from 'vue-router';
+import { nanoid } from 'nanoid';
+import { addDoc, arrayUnion, collection, doc, getDoc, serverTimestamp, setDoc, updateDoc } from '@firebase/firestore';
 
 
 const route = useRoute();
 const { project, editmode } = defineProps([ 'project', 'editmode' ]);
-const emit = defineEmits([ 'close' ]);
+const emit = defineEmits([ 'close', 'askContacts' ]);
+const db = inject('db');
+//const conversationId = ref(nanoid());
+const projectName = route.params.project;
+let docRef = ref(null);
 
 let nodes = project.nodes || [];
 let edges = project.edges || [];
@@ -17,6 +23,34 @@ const startNode = {
     label: 'Voit kokeilla miten vasemmalla näkyvät keskustelupolut toimivat täällä',
     class: 'unknown'
 };
+
+
+async function uploadResponse(node) {
+    if (!db || !node) return;
+
+    // Creates the conversation
+    if (!docRef.value) {
+        docRef.value = doc(db, 'projects', projectName, 'conversations', nanoid());
+
+        await setDoc(docRef.value, {
+            responses: [ node ],
+            timestamp: serverTimestamp(),
+
+        }).catch((e) => {
+            console.error(e);
+        });
+
+        return;
+    }
+
+    // Updates the conversation
+    await updateDoc(docRef.value, {
+        responses: arrayUnion(node),
+
+    }).catch((e) => {
+        console.error(e);
+    });
+}
 
 // Finds conversation start
 function getRoot() {
@@ -53,7 +87,7 @@ function updateReplies() {
     for (let edge of edges) {
         if (edge.from !== curNode.value.id) continue;
 
-        const node = nodes.find((n) => n.id === edge.to && n.class === 'user');
+        const node = nodes.find((n) => n.id === edge.to && (n.class === 'user' || n.class === 'contacts'));
         if (node) replies.value.push(node);
     }
 
@@ -73,35 +107,58 @@ function autoScroll() {
     });
 }
 
-function botReply() {
-    canReply.value = true;
-}
-
-function reply(node) {
+async function reply(node) {
     if (!node) return;
-    if (node.class === 'user' && !canReply.value) return;
+    if ((node.class === 'user' || node.class === 'contacts') && !canReply.value) return;
+
+    // Stores the reply to the database
+    if (node.class === 'user') {
+        uploadResponse({
+            id: node.id,
+            label: node.label,
+            parent: curNode.value ? curNode.value.id : ':root:',
+        });
+    }
 
     canReply.value = false;
     curNode.value = node;
     history.value.push(node);
     autoScroll();
 
-    // Checking if the bot can reply to the current node
-    const botReply = () => {
-        for (let edge of edges) {
-            if (edge.from === node.id) {
-                const nextNode = nodes.find((n) => n.id === edge.to);
-                if (nextNode.class === 'bot') return nextNode;
-            }
-        }
+    // Contact info
+    if (node.class === 'contacts') {
+        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((resolve, reject) => {
+            emit('askContacts', (contactsEncrypted) => {
+                uploadResponse({
+                    id: node.id,
+                    label: contactsEncrypted,
+                    parent: curNode.value.id,
+                });
+                resolve();
+            });
+        });
     }
 
-    const botNode = botReply();
+    //const botNode = botReply();
 
-    if (botNode) {
+    // Chooses the next node
+    let nextNode;
+
+    for (let edge of edges) {
+        if (edge.from !== node.id) continue;
+
+        nextNode = nodes.find((n) => n.id === edge.to);
+
+        // The bot always chooses to reply itself if it can,
+        // even if it skips some user replies
+        if (nextNode.class === 'bot') break;
+    }
+
+    if (nextNode && nextNode.class === 'bot') {
         setTimeout(() => {
-            reply(botNode);
-        }, 400); //(Math.random() / 2 + 0.5) * 800);
+            reply(nextNode);
+        }, 400);
     } else {
         updateReplies();
         canReply.value = true;
@@ -109,6 +166,8 @@ function reply(node) {
 }
 
 function reset() {
+    docRef.value = null;
+    curNode.value = null;
     reply(root);
     autoScroll();
 }
@@ -122,7 +181,7 @@ reset();
     <div class="chat-header" :style="{ 'border-radius': editmode ? '0' : `0.5rem 0.5rem 0 0` }">
         <div class="chat-header-left">
             <font-awesome-icon color="#eeeeee" icon="user-circle" />
-            <p class="chat-title">{{ route.params.project.toUpperCase() }}botti</p>
+            <p class="chat-title">{{ projectName.toUpperCase() }}botti</p>
         </div>
         <div class="chat-header-right">
             <font-awesome-icon @click="reset" color="#eeeeee" icon="redo" />
