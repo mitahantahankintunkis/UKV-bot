@@ -74,7 +74,7 @@ nextTick(() => {
 
         <transition name="slide-in">
             <div v-if="chatOpen" class="chatbot-window">
-                <ChatbotContent @close="toggleChat" :project="project" :key="project.timestamp" :editmode="false"></ChatbotContent>
+                <ChatbotContent @close="toggleChat" :project="project" :key="dataLoaded" :editmode="false"></ChatbotContent>
             </div>
         </transition>
     </main>

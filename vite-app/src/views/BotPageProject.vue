@@ -1,5 +1,5 @@
 <script setup>
-import BotContent from '../components/BotContent.vue';
+import Markdown from '../components/Markdown.vue';
 
 const { project } = defineProps([ 'project' ]);
 const markdown = project.page;
@@ -8,7 +8,7 @@ const markdown = project.page;
 
 
 <template>
-<BotContent :markdown="markdown"></BotContent>
+<Markdown :markdown="markdown"></Markdown>
 </template>
 
 

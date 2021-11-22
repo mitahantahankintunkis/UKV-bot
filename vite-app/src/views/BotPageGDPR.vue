@@ -1,12 +1,12 @@
 <script setup>
-import BotContent from '../components/BotContent.vue';
+import Markdown from '../components/Markdown.vue';
 import { plainText as markdown } from '../assets/gdpr.md';
 
 </script>
 
 
 <template>
-<BotContent :markdown="markdown"></BotContent>
+<Markdown :markdown="markdown"></Markdown>
 </template>
 
 

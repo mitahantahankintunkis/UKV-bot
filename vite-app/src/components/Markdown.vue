@@ -1,18 +1,13 @@
 <script setup>
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import { ref } from '@vue/reactivity';
 
 
-const props = defineProps(['markdown']);
-const cleanedHtml = ref('');
+// Parses and cleans the passed markdown
+const props = defineProps([ 'markdown' ]);
+const html = marked(props.markdown || '');
+const cleanedHtml = DOMPurify.sanitize(html);
 
-function parseMarkdown(markdown) {
-    const html = marked(markdown || '');
-    cleanedHtml.value = DOMPurify.sanitize(html);
-}
-
-parseMarkdown(props.markdown || '');
 </script>
 
 
@@ -22,14 +17,84 @@ parseMarkdown(props.markdown || '');
 
 
 <style scoped>
-
 div {
-    width: 100%;
-    height: 100%;
+    margin-bottom: 5rem;
 }
 
 div:deep(img) {
-    width: 70%;
+    width: 80%;
     height: auto;
+    margin: 1rem auto;
+    display: block;
+    text-align: center;
+}
+
+div:deep(ul) {
+    list-style-position: inside;
+}
+
+div:deep(h1),
+div:deep(h2),
+div:deep(h3),
+div:deep(h4),
+div:deep(h5) {
+    font-weight: 600;
+    color: #333;
+}
+
+div:deep(h1),
+div:deep(h2),
+div:deep(h3),
+div:deep(h4),
+div:deep(h5) {
+    margin: 1em 0;
+}
+
+div:deep(p) {
+    margin: 1rem 0;
 }
 </style>
+
+
+
+<!--
+Some file based stuff
+
+//async function getCleanedHtml() {
+    //console.log('Loading markdown...');
+
+    //const markdownRef = firebaseRef(storage, 'muuvo/test.md');
+
+    //const url = await getDownloadURL(markdownRef).catch((e) => {
+    //    console.error('Failed to load content', e);
+    //    const html = marked('Failed to load content. Please try again later');
+    //    cleanedHtml.value = DOMPurify.sanitize(html);
+    //});
+
+    //// Sets caching for md files
+    ////const metadata = await getMetadata(markdownRef);
+    ////const newMetadata = await updateMetadata(markdownRef, {
+    ////    ...metadata,
+    ////    cacheControl: 'public,max-age=7200',
+    ////    contentType: 'text/markdown',
+    ////});
+
+    //if (url) {
+    //    const xhr = new XMLHttpRequest();
+    //    xhr.responseType = 'blob';
+
+    //    xhr.onload = async (event) => {
+    //        const blob = xhr.response;
+    //        if (blob.type !== 'text/markdown') return;
+
+    //        const markdown = await blob.text();
+    //        const html = marked(markdown);
+    //        cleanedHtml.value = DOMPurify.sanitize(html);
+    //    };
+
+    //    xhr.open('GET', url);
+    //    xhr.send();
+    //}
+//}
+//getCleanedHtml();
+-->
