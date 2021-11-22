@@ -1,5 +1,5 @@
 <script setup>
-import BotContent from '../components/BotContent.vue';
+import Markdown from '../components/Markdown.vue';
 
 
 const emit = defineEmits([ 'download', 'upload', 'load', 'save', 'info' ]);
@@ -36,7 +36,7 @@ function textChanged(e) {
         </div>
         <div class="right">
             <div class="rendered">
-                <BotContent :key="props.project.page" :markdown="props.project.page"></BotContent>
+                <Markdown :key="props.project.page" :markdown="props.project.page"></Markdown>
             </div>
         </div>
     </div>
