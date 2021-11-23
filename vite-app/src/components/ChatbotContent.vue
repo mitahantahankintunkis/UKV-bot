@@ -111,19 +111,20 @@ async function reply(node) {
     if (!node) return;
     if ((node.class === 'user' || node.class === 'contacts') && !canReply.value) return;
 
+    const parent = curNode.value;
+    canReply.value = false;
+    curNode.value = node;
+    history.value.push(node);
+    autoScroll();
+
     // Stores the reply to the database
     if (node.class === 'user') {
         uploadResponse({
             id: node.id,
             label: node.label,
-            parent: curNode.value ? curNode.value.id : ':root:',
+            parent: parent ? parent.id : ':root:',
         });
     }
-
-    canReply.value = false;
-    curNode.value = node;
-    history.value.push(node);
-    autoScroll();
 
     // Contact info
     if (node.class === 'contacts') {
@@ -133,14 +134,12 @@ async function reply(node) {
                 uploadResponse({
                     id: node.id,
                     label: contactsEncrypted,
-                    parent: curNode.value.id,
+                    parent: parent.id,
                 });
                 resolve();
             });
         });
     }
-
-    //const botNode = botReply();
 
     // Chooses the next node
     let nextNode;
@@ -150,7 +149,7 @@ async function reply(node) {
 
         nextNode = nodes.find((n) => n.id === edge.to);
 
-        // The bot always chooses to reply itself if it can,
+        // The bot always chooses to reply to itself if it can,
         // even if it skips some user replies
         if (nextNode.class === 'bot') break;
     }

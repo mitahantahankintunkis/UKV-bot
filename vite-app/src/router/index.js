@@ -3,6 +3,7 @@ import { getUser } from '../utils';
 
 
 const routes = [
+    { path: '/', component: () => import('../views/LandingPage.vue') },
     { path: '/login', component: () => import('../views/LoginPage.vue') },
     { path: '/logout', component: () => import('../views/LogoutPage.vue') },
 

@@ -59,7 +59,7 @@ function saveCSV() {
     const nodes = props.project.nodes;
     const nodeParents = conversations.value.map((c) => c.responses.map((r) => r.parent)).flat();
     const nodesWithResponses = nodes.filter((n) => {
-        return n.class === 'bot' && nodeParents.find((c) => c === n.id);
+        return nodeParents.find((c) => c === n.id);
     });
     const indexLookup = new Map();
 
@@ -82,7 +82,7 @@ function saveCSV() {
         rows.push(row);
     }
 
-    const strRows = rows.map((row) => row.map((c) => `"${c.replace('\n', '\\n')}"`));
+    const strRows = rows.map((row) => row.map((c) => `"${JSON.stringify(c)}"`));
 
     let data = strRows.map((row) => row.join(';'));
     data = [ data[0] ].concat(data.slice(1).sort());
@@ -131,7 +131,7 @@ getData();
             <h2>Keskustelut</h2>
             <div class="row">
                 <div class="card">
-                    <h3 class="card-title">Keskustelujen lataus, (väliaikainen, hieman rikki)</h3>
+                    <h3 class="card-title">Keskustelujen lataus</h3>
                     <div class="card-content">
                         <button @click="saveCSV">Lataa .csv muodossa</button>
                     </div>

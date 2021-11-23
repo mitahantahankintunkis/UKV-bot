@@ -167,16 +167,18 @@ saveIntervalID.value = setInterval(saveProject, 1000 * 10);
     <AdminHeader></AdminHeader>
 
     <main>
-        <router-view
-            @info="setInfo"
-            @upload="uploadProject"
-            @download="downloadProject"
-            @load="loadProject"
-            @save="saveProject"
-            :project="projectData"
-            :key="dataLoaded">
+        <div class="admin-content">
+            <router-view
+                @info="setInfo"
+                @upload="uploadProject"
+                @download="downloadProject"
+                @load="loadProject"
+                @save="saveProject"
+                :project="projectData"
+                :key="dataLoaded">
 
-        </router-view>
+            </router-view>
+        </div>
 
         <div class="infobar">
             <InfoBar :info="info"></InfoBar>
@@ -189,6 +191,10 @@ saveIntervalID.value = setInterval(saveProject, 1000 * 10);
 main {
     width: 100%;
     margin: 3.6rem auto 0 auto;
+}
+
+.admin-content {
+    margin-bottom: 2rem;
 }
 
 .infobar {
