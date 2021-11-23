@@ -21,6 +21,16 @@ service cloud.firestore {
   	match /users/{uid} {
     	allow read, write: if request.auth.uid == uid || isAdmin();
     }
+    
+    match /redirections/{redir} {
+    	allow create, update;
+      allow read, write: if isAdmin();
+    }
+    
+    match /coverage/{site} {
+    	allow create, update;
+      allow read, write: if isAdmin();
+    }
         
     // TODO - add this to the database
     function isAdmin() {

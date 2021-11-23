@@ -5,7 +5,8 @@
     "dev": "vite",
     "build": "vite build --emptyOutDir",
     "serve": "vite preview",
-    "deploy-dev": "firebase deploy --project ukv-bot-dev "
+    "deploy-dev": "firebase deploy --project ukv-bot-dev",
+    "deploy-prod": "firebase deploy --project ukv-bot"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^1.2.36",
