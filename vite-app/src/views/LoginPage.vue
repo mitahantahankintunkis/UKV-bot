@@ -21,11 +21,11 @@ function login(e) {
             router.push('/admin');
         }).catch((e) => {
             console.error(e);
-            message.value = 'Virhe kirjautuessa sisään';
+            message.value = 'Virheelliset tunnukset';
         });
     }).catch((e) => {
             console.error(e);
-            message.value = 'Virheelliset tunnukset';
+            message.value = 'Virhe kirjautuessa sisään';
     });
 }
 
