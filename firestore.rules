@@ -31,10 +31,10 @@ service cloud.firestore {
     	allow create, update;
       allow read, write: if isAdmin();
     }
-        
+            
     // TODO - add this to the database
     function isAdmin() {
-    	return request.auth.uid == "5VuJbHtKebdwXLcPNbIJpzwZHZo2";
+    	return request.auth.uid == "5VuJbHtKebdwXLcPNbIJpzwZHZo2" || request.auth.id == "V0213pfxJIZ98rQ3itCbvm5T6XQ2";
     }
     
     function canWrite() {

@@ -3,22 +3,28 @@ import { useRouter } from 'vue-router';
 import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from '@firebase/auth';
 import { ref } from '@vue/reactivity';
 import { inject } from '@vue/runtime-core';
+import { getUser } from '../utils';
 
 
 const router = useRouter();
 const message = ref(null);
 const auth = getAuth(); // inject('auth');
+let user = getUser();
 
+if (user) router.push('/admin/');
 
 function login(e) {
     e.preventDefault();
+
+    user = getUser();
+    if (user) router.push('/admin/');
 
     const email = document.getElementById('email').value || '';
     const pwd = document.getElementById('pwd').value || '';
 
     setPersistence(auth, browserLocalPersistence).then(() => {
         return signInWithEmailAndPassword(auth, email, pwd).then((cred) => {
-            router.push('/admin');
+            router.push('/admin/');
         }).catch((e) => {
             console.error(e);
             message.value = 'Virheelliset tunnukset';
