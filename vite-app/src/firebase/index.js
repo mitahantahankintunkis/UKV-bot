@@ -5,7 +5,7 @@ import { getStorage } from 'firebase/storage';
 import { useRouter } from 'vue-router';
 //import { getAnalytics } from 'firebase/analytics';
 
-const DEV = false;
+const DEV = true;
 
 
 // Firebase configuration
