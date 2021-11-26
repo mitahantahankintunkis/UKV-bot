@@ -1,44 +1,19 @@
 <script setup>
-import { doc, increment, setDoc, updateDoc } from '@firebase/firestore';
-import { inject } from '@vue/runtime-core';
 import { useRoute } from 'vue-router';
 
 
-const db = inject('db');
 const route = useRoute();
 const query = route.query;
 
-// Sets initial data
-async function redirect(path) {
-    const url = new URL(path);
-
-    let cleanUrl = url.host;
-    if (url.path) cleanUrl += url.path;
-
-    const docRef = doc(db, 'usage', 'redirections');
-
-    await updateDoc(docRef, {
-        redirections: increment(1),
-
-    }).then((e) => {
-        // TODO - Unsafe redirect
-        try {
-            window.location.assign(url);
-        } catch(e) {
-            console.error(e);
-        }
-
-    }).catch((e) => {
-        const data = {};
-        data[cleanUrl] = 1;
-
-        setDoc(docRef, data)
-            .catch(console.error);
-    });
-}
-
 if (query.to) {
-    //redirect(query.to);
+    // TODO - Unsafe redirect
+    try {
+        setTimeout(() => {
+            window.location.href = query.to;
+        }, 2000);
+    } catch(e) {
+        console.error(e);
+    }
 }
 </script>
 
@@ -46,8 +21,8 @@ if (query.to) {
 <template>
     <div class="landing-cont">
         <div v-if="query.to">
-            <h1>Ohjataan (keskeneräinen)...</h1>
-            <p>Vaihtoehtoisesti klikkaa <a :href="query.to">tätä linkkiä</a></p>
+            <h1>Ohjataan...</h1>
+            <p>Vaihtoehtoisesti voit klikata <a :href="query.to">tätä linkkiä</a></p>
         </div>
         <div v-else>
             <h1>204</h1>

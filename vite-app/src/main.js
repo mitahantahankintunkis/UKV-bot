@@ -1,6 +1,6 @@
 import { createApp } from 'vue';
 import App from './App.vue';
-import router from './router';
+import { router, addAnalytics } from './router';
 import { db, storage, auth } from './firebase';
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -17,6 +17,8 @@ library.add(faExpand);
 library.add(faDownload);
 library.add(faUpload);
 library.add(faTimes);
+
+addAnalytics(db);
 
 createApp(App)
     .component('font-awesome-icon', FontAwesomeIcon)

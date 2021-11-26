@@ -8,6 +8,8 @@ import { getUser } from '../utils';
 
 const router = useRouter();
 const message = ref(null);
+const email = ref('');
+const pwd = ref('');
 const auth = getAuth(); // inject('auth');
 let user = getUser();
 
@@ -16,14 +18,15 @@ if (user) router.push('/admin/');
 function login(e) {
     e.preventDefault();
 
-    user = getUser();
-    if (user) router.push('/admin/');
+    //const email = document.getElementById('email').value || '';
+    //const pwd = document.getElementById('pwd').value || '';
 
-    const email = document.getElementById('email').value || '';
-    const pwd = document.getElementById('pwd').value || '';
+    // TODO - Fix this hacky solution
+    user = getUser();
+    if (user && user.email === email.value) router.push('/admin/');
 
     setPersistence(auth, browserLocalPersistence).then(() => {
-        return signInWithEmailAndPassword(auth, email, pwd).then((cred) => {
+        return signInWithEmailAndPassword(auth, email.value, pwd.value).then((cred) => {
             router.push('/admin/');
         }).catch((e) => {
             console.error(e);
@@ -43,8 +46,8 @@ function login(e) {
         <div class="cont">
             <h2>Kirjaudu sisään</h2>
             <form @submit="login">
-                <input name="email" id="email" type="text" placeholder="Sähköposti" required>
-                <input name="pwd" id="pwd" type="password" placeholder="Salasana" required>
+                <input v-model="email" name="email" id="email" type="text" placeholder="Sähköposti" required>
+                <input v-model="pwd" name="pwd" id="pwd" type="password" placeholder="Salasana" required>
                 <button type="submit">Kirjaudu sisään</button>
             </form>
             <h4 v-if="message">{{ message }}</h4>

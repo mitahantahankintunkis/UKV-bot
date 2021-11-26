@@ -5,16 +5,20 @@ import { getStorage } from 'firebase/storage';
 import { useRouter } from 'vue-router';
 //import { getAnalytics } from 'firebase/analytics';
 
+const DEV = false;
+
 
 // Firebase configuration
-const firebaseConfig = {
-    //apiKey: 'AIzaSyBj2ID5ItDwEPUeVzKfYUZBvtLxVB8bjZI',
-    //authDomain: 'ukv-bot-dev.firebaseapp.com',
-    //projectId: 'ukv-bot-dev',
-    //storageBucket: 'ukv-bot-dev.appspot.com',
-    //messagingSenderId: '560183245126',
-    //appId: '1:560183245126:web:a18be65feff81925094d47'
-
+const firebaseConfig = DEV ?
+{
+    apiKey: 'AIzaSyBj2ID5ItDwEPUeVzKfYUZBvtLxVB8bjZI',
+    authDomain: 'ukv-bot-dev.firebaseapp.com',
+    projectId: 'ukv-bot-dev',
+    storageBucket: 'ukv-bot-dev.appspot.com',
+    messagingSenderId: '560183245126',
+    appId: '1:560183245126:web:a18be65feff81925094d47'
+} :
+{
     apiKey: 'AIzaSyBu0efPHZ9NMLJ5ALArs9EcZVMrZAxCAqo',
     authDomain: 'ukv-bot.firebaseapp.com',
     projectId: 'ukv-bot',

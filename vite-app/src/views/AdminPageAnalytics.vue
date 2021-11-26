@@ -8,6 +8,8 @@ import { collection, doc, getDoc, getDocs, query } from 'firebase/firestore';
 import { getUser } from '../utils';
 
 
+//const user = getUser();
+
 const emit = defineEmits([ 'download', 'upload', 'load', 'save', 'info' ]);
 const props = defineProps([ 'project' ]);
 
@@ -24,21 +26,14 @@ const conversationCount = ref('?');
 const redirectedCount   = ref('?');
 const contactsCount     = ref('?');
 const conversations     = ref([]);
+const visitors          = ref([]);
 
 
-async function getData() {
-    if (!db) {
-        setInfo(1, 'DB ei ole olemassa (?)');
-        return;
-    }
-
-    dataLoaded.value = false;
-
+async function getConversations() {
     const projectName = route.params.project;
     const coll = collection(db, 'projects', projectName, 'conversations');
     const q = query(coll);
 
-    emit('info', 0, 'Ladataan tilastotietoa...');
     const querySnapshot = await getDocs(q);
 
     querySnapshot.forEach((doc) => {
@@ -46,13 +41,59 @@ async function getData() {
     })
 
     conversationCount.value = conversations.value.length;
+}
+
+async function getVisits() {
+    redirectedCount.value = 0;
+    visitorCount.value = 0;
+
+    const coll = collection(db, 'visits');
+    const q = query(coll);
+
+    const querySnapshot = await getDocs(q);
+
+    querySnapshot.forEach((doc) => {
+        const url = atob(doc.id);
+        const data = doc.data();
+        const lastVisit = new Date(data.lastUpdate.seconds * 1000);
+
+        visitors.value.push({
+            url: url,
+            visits: data.visits,
+            lastVisit: lastVisit.toLocaleString('fi'),
+            //lastVisit: lastVisit.format('hh:MM dd.mm.yyyy')
+        });
+
+        visitorCount.value += data.visits;
+
+        if (url.startsWith('/?to=')) {
+            const redir = url.substr(5);
+            redirectedCount.value += data.visits;
+        }
+    })
+}
+
+async function getData() {
+    if (!db) {
+        emit('info', 1, 'DB ei ole olemassa (?)');
+        return;
+    }
+
+    emit('info', 0, 'Ladataan tilastotietoa...');
+
+    getConversations();
+    getVisits();
 
     emit('info', 0, 'Tilastotieto ladattu');
+
+    dataLoaded.value = true;
 }
 
 // Downloads conversations as a .csv file
 function saveCSV() {
     if (!conversations.value || conversations.value.length === 0) return;
+
+    emit('info', 1, 'TODO - Saattaa tuottaa virheellistä tietoa');
 
     const rows = [];
     const edges = props.project.edges;
@@ -99,6 +140,10 @@ function saveCSV() {
     anchor.click();
 }
 
+async function saveJSON() {
+    emit('info', 1, 'TODO - ei toteutettu');
+}
+
 getData();
 </script>
 
@@ -106,7 +151,7 @@ getData();
 <template>
     <main>
         <div class="anal-cont">
-            <h1>Pahasti keskeneräinen</h1>
+            <h1>Hieman keskeneräinen, mutta toimiva</h1>
 
             <h2>Yleistietoa</h2>
             <div class="row">
@@ -128,12 +173,34 @@ getData();
                 </div>
             </div>
 
+            <h2>Kävijämäärät</h2>
+            <div class="row">
+                <div class="card">
+                    <div class="card-content">
+                        <table>
+                            <tr>
+                                <th class="visit-url">URL</th>
+                                <th>Kävijöitä</th>
+                                <th>Viimeinen käynti</th>
+                            </tr>
+
+                            <tr v-for="visit in visitors" :key="visit.url">
+                                <td class="visit-url">{{ visit.url }}</td>
+                                <td>{{ visit.visits }}</td>
+                                <td>{{ visit.lastVisit }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <h2>Keskustelut</h2>
             <div class="row">
                 <div class="card">
                     <h3 class="card-title">Keskustelujen lataus</h3>
                     <div class="card-content">
                         <button @click="saveCSV">Lataa .csv muodossa</button>
+                        <button @click="saveJSON">Lataa .json muodossa</button>
                     </div>
                 </div>
             </div>
@@ -194,15 +261,29 @@ ul {
 }
 
 .card-content {
-
+    width: 100%;
 }
 
 button {
     width: 100%;
+    margin-bottom: 0.5rem;
 }
 
 h2 {
     margin-top: 3rem;
     margin-bottom: 1rem;
+}
+
+table {
+    width: 100%;
+}
+
+th {
+    height: 2rem;
+    vertical-align: top;
+}
+
+.visit-url {
+    text-align: start;
 }
 </style>

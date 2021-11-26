@@ -27,14 +27,16 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
     
-    match /coverage/{site} {
-    	allow create, update;
+    match /visits/{doc} {
+    	allow create;
+      allow update: if request.resource.data.visits == resource.data.visits + 1;
       allow read, write: if isAdmin();
     }
-            
+        
     // TODO - add this to the database
     function isAdmin() {
-    	return request.auth.uid == "5VuJbHtKebdwXLcPNbIJpzwZHZo2" || request.auth.id == "V0213pfxJIZ98rQ3itCbvm5T6XQ2";
+    	return request.auth.uid == "5VuJbHtKebdwXLcPNbIJpzwZHZo2" ||
+      	request.auth.uid == "V0213pfxJIZ98rQ3itCbvm5T6XQ2";
     }
     
     function canWrite() {
