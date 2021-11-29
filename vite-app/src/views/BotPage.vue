@@ -40,21 +40,7 @@ async function getData() {
 
     const projectName = route.params.project;
     const docRef = doc(db, 'projects', projectName);
-    await getDoc(docRef)
-        .then((docSnap) => {
-            dataLoaded.value = true;
-
-            if (docSnap.exists()) {
-                project.value = docSnap.data() || {};
-            } else {
-                project.value = {
-                    nodes: [],
-                    edges: [],
-                    page: '### Virhe sivuston sisältöä haettaessa.\nKoita päivittää sivusto uudestaan.',
-                };
-            }
-
-        })
+    const docSnap = await getDoc(docRef)
         .catch((e) => {
             console.error(e);
             project.value = {
@@ -63,6 +49,19 @@ async function getData() {
                 page: '### Virhe sivuston sisältöä haettaessa.\nKoita päivittää sivusto uudestaan.',
             };
         });
+
+    dataLoaded.value = true;
+
+    if (docSnap && docSnap.exists()) {
+        project.value = docSnap.data() || {};
+
+    } else {
+        project.value = {
+            nodes: [],
+            edges: [],
+            page: '### Virhe sivuston sisältöä haettaessa.\nKoita päivittää sivusto uudestaan.',
+        };
+    }
 }
 getData();
 
@@ -114,7 +113,6 @@ main {
     box-shadow: #c3c3c3 0px 0px 8px;
 }
 
-
 .slide-in-enter-active, .slide-in-leave-active {
     transition: bottom 200ms ease;
 }
@@ -122,12 +120,4 @@ main {
 .slide-in-enter-from, .slide-in-leave-to {
     bottom: -100vh;
 }
-
-
-/*
-@keyframes slide-in {
-    from { top: 100vh; }
-    to { top: 1rem; }
-}
-*/
 </style>
