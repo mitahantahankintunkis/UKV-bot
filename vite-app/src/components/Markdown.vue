@@ -22,11 +22,9 @@ div {
 }
 
 div:deep(img) {
-    width: 80%;
-    height: auto;
-    margin: 1rem auto;
-    display: block;
+    margin: 1rem;
     text-align: center;
+    vertical-align: middle;
 }
 
 div:deep(ul) {

@@ -6,7 +6,7 @@ const emit = defineEmits([ 'download', 'upload', 'load', 'save', 'info' ]);
 const props = defineProps([ 'project' ]);
 const route = useRoute();
 const projectName = route.params.project;
-const customerUrl = `/projekti/${projectName}`;
+const customerUrl = `/projekti/${projectName}/`;
 
 
 function todo() {
@@ -19,6 +19,12 @@ function todo() {
 <template>
     <main class="admin-cont">
         <h1>{{ projectName }}-projektin hallintapaneeli</h1>
+
+        <div class="controls">
+            <button @click="emit('download')">Lataa pilvestä</button>
+            <button @click="emit('upload')">Lähetä pilveen</button>
+        </div>
+
         <h2>
             <router-link :to="customerUrl">Yritysten linkki projektiin</router-link>
         </h2>
@@ -102,5 +108,18 @@ ul {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+}
+
+
+.controls {
+    display: flex;
+    align-content: center;
+    width: fit-content;
+    margin: 0 auto 5rem auto;
+    gap: 0.5rem;
+}
+
+.controls button {
+    width: 10rem;
 }
 </style>

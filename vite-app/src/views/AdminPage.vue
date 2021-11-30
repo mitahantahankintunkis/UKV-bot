@@ -150,6 +150,13 @@ async function downloadProject() {
         });
 }
 
+
+function removeStatistics() { }
+function removeProject() { }
+function removeConversations() { }
+
+
+// Initial state, TODO - should check for last modified date
 if (!loadProject()) downloadProject();
 
 // Autosaving 

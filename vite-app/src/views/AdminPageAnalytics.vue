@@ -71,6 +71,8 @@ async function getVisits() {
             redirectedCount.value += data.visits;
         }
     })
+
+    visitors.value.sort((a, b) => a.visits < b.visits);
 }
 
 async function getData() {
@@ -123,7 +125,7 @@ function saveCSV() {
         rows.push(row);
     }
 
-    const strRows = rows.map((row) => row.map((c) => `"${JSON.stringify(c)}"`));
+    const strRows = rows.map((row) => row.map((c) => `${JSON.stringify(c)}`));
 
     let data = strRows.map((row) => row.join(';'));
     data = [ data[0] ].concat(data.slice(1).sort());
