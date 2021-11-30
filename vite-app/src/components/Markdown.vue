@@ -25,6 +25,7 @@ div:deep(img) {
     margin: 1rem;
     text-align: center;
     vertical-align: middle;
+    max-width: 70vw;
 }
 
 div:deep(ul) {

@@ -180,7 +180,10 @@ reset();
     <div class="chat-header" :style="{ 'border-radius': editmode ? '0' : '0' }">
         <div class="chat-header-left">
             <font-awesome-icon color="#eeeeee" icon="user-circle" />
+            <p class="chat-title">MUUVObotti</p>
+            <!--
             <p class="chat-title">{{ projectName.toUpperCase() }}botti</p>
+            -->
         </div>
         <div class="chat-header-right">
             <font-awesome-icon @click="reset" color="#eeeeee" icon="redo" />
@@ -271,13 +274,13 @@ reset();
 
 .controls {
     height: 30%;
-    overflow-y: scroll;
     border-top: 1px solid gray;
 }
 
 .replies {
     height: 100%;
     display: flex;
+    overflow-y: scroll;
     flex-direction: column;
     gap: 0.5rem;
     padding: 1rem;

@@ -19,8 +19,8 @@
     border-radius: var(--notification-size);
     background-color: rgb(224, 22, 62);
     color: white;
-}
 
+}
 .pulse {
   animation: pulse-animation ease-out 2s 5s 3;
 }

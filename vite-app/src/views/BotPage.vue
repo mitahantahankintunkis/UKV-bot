@@ -37,7 +37,6 @@ function askContacts(callback) {
 
 function hideNotification() {
     notificationVisible.value = false;
-    console.log(notificationVisible.value);
 }
 
 // Gets project settings from firestore
