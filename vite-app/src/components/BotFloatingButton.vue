@@ -1,12 +1,13 @@
 <script setup>
+import NotificationBubble from './NotificationBubble.vue';
 const emit = defineEmits(['click']);
 </script>
 
 
 <template>
-<div @click="emit('click')" class="circle-button">
-    <font-awesome-icon color="white" icon="comment-alt" />
-</div>
+    <div @click="emit('click')" class="circle-button">
+        <font-awesome-icon color="white" icon="comment-alt" />
+    </div>
 </template>
 
 

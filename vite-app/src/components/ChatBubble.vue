@@ -36,6 +36,7 @@ function parseMessage() {
     border-radius: 1rem 1rem 1rem 1rem;
     text-align: center;
     align-self: center;
+    scroll-margin-bottom: 1rem;
 }
 
 .user-msg {

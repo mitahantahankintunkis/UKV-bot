@@ -26,7 +26,7 @@ const startNode = {
 
 
 async function uploadResponse(node) {
-    if (!db || !node) return;
+    if (!db || !node || editmode) return;
 
     // Creates the conversation
     if (!docRef.value) {
@@ -177,7 +177,7 @@ reset();
 
 <template>
 <div class="chat-window">
-    <div class="chat-header" :style="{ 'border-radius': editmode ? '0' : `0.5rem 0.5rem 0 0` }">
+    <div class="chat-header" :style="{ 'border-radius': editmode ? '0' : '0' }">
         <div class="chat-header-left">
             <font-awesome-icon color="#eeeeee" icon="user-circle" />
             <p class="chat-title">{{ projectName.toUpperCase() }}botti</p>
@@ -258,6 +258,8 @@ reset();
     height: 70%;
     overflow-y: scroll;
     width: 100%;
+    scroll-behavior: smooth;
+    padding-bottom: 1rem;
 }
 
 .history-bubbles {

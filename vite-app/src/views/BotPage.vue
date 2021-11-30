@@ -2,11 +2,12 @@
 import BotHeader from '../components/BotHeader.vue';
 import BotFloatingButton from '../components/BotFloatingButton.vue';
 import ChatbotContent from '../components/ChatbotContent.vue';
-import ContactPrompt from '../components/ContactPrompt.vue';
+import NotificationBubble from '../components/NotificationBubble.vue';
 import { ref } from '@vue/reactivity';
 import { inject, nextTick, onBeforeMount, onMounted } from '@vue/runtime-core';
 import { useRoute } from 'vue-router';
 import { doc, getDoc } from 'firebase/firestore';
+import BotSidebar from '../components/BotSidebar.vue';
 
 
 // Used to hide the chat window
@@ -14,6 +15,8 @@ const chatOpen = ref(false);
 const dataLoaded = ref(false);
 const project = ref({});
 const promptOpen = ref(false);
+const notificationVisible = ref(true);
+const sidebarVisible = ref(false);
 
 const db = inject('db');
 const route = useRoute();
@@ -30,6 +33,11 @@ function contactSubmit(data) {
 function askContacts(callback) {
     contactCallback.value = callback;
     promptOpen.value = true;
+}
+
+function hideNotification() {
+    notificationVisible.value = false;
+    console.log(notificationVisible.value);
 }
 
 // Gets project settings from firestore
@@ -52,8 +60,8 @@ async function getData() {
 
     dataLoaded.value = true;
 
-    if (docSnap && docSnap.exists()) {
-        project.value = docSnap.data() || {};
+    if (docSnap && docSnap.exists() && docSnap.data()) {
+        project.value = docSnap.data();
 
     } else {
         project.value = {
@@ -69,6 +77,10 @@ function toggleChat() {
     chatOpen.value = !chatOpen.value;
 }
 
+function toggleSidebar() {
+    sidebarVisible.value = !sidebarVisible.value;
+}
+
 // Opens the chat
 nextTick(() => {
     chatOpen.value = true;
@@ -77,29 +89,66 @@ nextTick(() => {
 
 
 <template>
-    <BotHeader></BotHeader>
     <main>
-        <div v-if="!dataLoaded">Ladataan...</div>
+        <BotHeader @toggle-sidebar="toggleSidebar"></BotHeader>
 
-        <router-view v-else :project="project" :key="project.timestamp"></router-view>
+        <div class="banner-wrapper">
+            <img class="banner" src="../assets/banner.png" alt="Banneri">
+        </div>
 
-        <BotFloatingButton @click="toggleChat"></BotFloatingButton>
+        <div class="text-content">
+            <div v-if="!dataLoaded">Ladataan...</div>
+            <router-view v-else :project="project" :key="project.timestamp"></router-view>
+        </div>
+
+        <div class="floating">
+            <BotFloatingButton @click="toggleChat"></BotFloatingButton>
+
+            <div v-if="notificationVisible" class="notification notification-floating">
+                <NotificationBubble></NotificationBubble>
+            </div>
+        </div>
 
         <transition name="slide-in">
-            <div v-if="chatOpen" class="chatbot-window">
+            <div v-if="chatOpen" @click="hideNotification" class="chatbot-window">
                 <ChatbotContent @close="toggleChat" @askContacts="askContacts" :project="project" :key="dataLoaded" :editmode="false"></ChatbotContent>
+
+                <div v-if="notificationVisible" class="notification notification-chat">
+                    <NotificationBubble></NotificationBubble>
+                </div>
             </div>
         </transition>
+
+        <BotSidebar v-if="sidebarVisible" @toggle-sidebar="toggleSidebar"></BotSidebar>
     </main>
 
+    <!--
     <ContactPrompt v-if="promptOpen" @submit="contactSubmit"></ContactPrompt>
+    -->
 </template>
 
 
 <style scoped>
 main {
-    width: 50vw;
-    margin: 15rem auto 0 auto;
+    width: min(100vw, 50rem);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.banner-wrapper {
+    direction: rtl;
+    overflow: hidden;
+}
+
+.banner {
+    width: fit-content;
+    min-width: 100%;
+    height: auto;
+}
+
+.text-content {
+    padding: 0 2rem 2rem 2rem;
 }
 
 .chatbot-window {
@@ -110,7 +159,19 @@ main {
     max-height: 50rem;
     border-radius: 0.5rem 0.5rem 0 0;
     animation: slide-in 200ms ease forwards 0s;
-    box-shadow: #c3c3c3 0px 0px 8px;
+    box-shadow: #00000044 0px 0px 8px;
+}
+
+.notification-chat {
+    position: absolute;
+    top: 0.2rem;
+    left: 2rem;
+}
+
+.notification-floating {
+    position: absolute;
+    right: 1rem;
+    bottom: 4.6rem;
 }
 
 .slide-in-enter-active, .slide-in-leave-active {

@@ -1,13 +1,20 @@
 <script setup>
+
+const emit = defineEmits([ 'toggleSidebar' ]);
 </script>
 
 <template>
     <header>
-        <img class="logo" src="../assets/ukv.png" alt="logo">
-        <div class="links">
+        <img class="logo" src="../assets/muuvo.jpg" alt="logo">
+
+        <div class="hamburger-cont">
+            <font-awesome-icon @click="emit('toggleSidebar')" class="hamburger" color="#444" icon="bars" />
+        </div>
+
+        <nav>
             <ul>
                 <li>
-                    <router-link :to="{ name: 'project' }">Hanke</router-link>
+                    <router-link :to="{ name: 'project' }">Etusivu</router-link>
                 </li>
                 <li>
                     <router-link :to="{ name: 'ukv' }">UKV</router-link>
@@ -16,40 +23,54 @@
                     <router-link :to="{ name: 'gdpr' }">Tietosuojaseloste</router-link>
                 </li>
             </ul>
-        </div>
+        </nav>
     </header>
 </template>
 
 <style scoped>
 header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 10rem;
-    width: 70vw;
-    margin: 2rem auto 0 auto;
+    width: 100%;
     display: flex;
+    align-content: space-between;
+    align-items: flex-end;
+    padding: 1rem;
+    margin: 1rem 0;
 }
 
 .logo {
     width: auto;
-    height: 10rem;
+    height: 6rem;
 }
 
-.links {
+.hamburger-cont {
+    display: none;
+    align-self: center;
+    width: 100%;
+    height: 2rem;
+    text-align: end;
+}
+
+.hamburger-cont svg {
+    width: 2rem;
+    height: 2rem;
+    margin-right: 2rem;
+    line-height: 2rem;
+    cursor: pointer;
+}
+
+nav {
     height: 100%;
     width: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: end;
+    justify-content: flex-end;
 }
 
 ul {
     display: flex;
     list-style-type: none;
     gap: 3rem;
-    justify-content: end;
+    justify-content: flex-end;
 }
 
 li {
@@ -57,9 +78,46 @@ li {
     font-weight: 600;
 }
 
-a {
+.router-link-exact-active {
     color: #333;
+}
+
+.router-link-exact-active::after {
+    transform: scaleX(1);
+}
+
+a {
+    position: relative;
     text-decoration: none;
+    color: #333;
+    transition: color 50ms;
+}
+
+a::after {
+    position: absolute;
+    content: "";
+    width: 100%;
+    height: 3px;
+    top: 90%;
+    left: 0;
+    background: #0eabcc;
+    transition: transform 50ms;
+    transform: scaleX(0);
+    transform-origin: center;
+}
+
+a:hover::after {
+    transform: scaleX(1);
+}
+
+@media only screen and (max-width: 600px) {
+    nav {
+        display: none;
+    }
+
+    .hamburger-cont {
+        display: block;
+    }
 }
 
 </style>
