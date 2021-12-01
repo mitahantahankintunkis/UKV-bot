@@ -82,7 +82,9 @@ function toggleSidebar() {
 
 // Opens the chat
 nextTick(() => {
-    chatOpen.value = true;
+    setTimeout(() => {
+        chatOpen.value = true;
+    }, 2000);
 });
 </script>
 
@@ -92,7 +94,7 @@ nextTick(() => {
         <BotHeader @toggle-sidebar="toggleSidebar"></BotHeader>
 
         <div class="banner-wrapper">
-            <img class="banner" src="../assets/banner.png" alt="Banneri">
+            <img class="banner" src="/assets/banner.png" alt="Banneri">
         </div>
 
         <div class="text-content">

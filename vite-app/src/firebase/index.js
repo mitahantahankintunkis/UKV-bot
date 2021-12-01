@@ -19,13 +19,25 @@ const firebaseConfig = DEV ?
     appId: '1:560183245126:web:a18be65feff81925094d47'
 } :
 {
-    apiKey: 'AIzaSyBu0efPHZ9NMLJ5ALArs9EcZVMrZAxCAqo',
-    authDomain: 'ukv-bot.firebaseapp.com',
-    projectId: 'ukv-bot',
-    storageBucket: 'ukv-bot.appspot.com',
-    messagingSenderId: '398942949695',
-    appId: '1:398942949695:web:8b0a0f068a8eeb9ace038a',
-    measurementId: 'G-WY1LBF766R'
+    // Muuvobotti
+    apiKey: "AIzaSyBu0efPHZ9NMLJ5ALArs9EcZVMrZAxCAqo",
+    authDomain: "ukv-bot.firebaseapp.com",
+    projectId: "ukv-bot",
+    storageBucket: "ukv-bot.appspot.com",
+    messagingSenderId: "398942949695",
+    appId: "1:398942949695:web:aa8c68b0d3b8a045ce038a",
+    measurementId: "G-GSKDQE0TXP"
+
+
+
+    // UKV-bot
+    //apiKey: 'AIzaSyBu0efPHZ9NMLJ5ALArs9EcZVMrZAxCAqo',
+    //authDomain: 'ukv-bot.firebaseapp.com',
+    //projectId: 'ukv-bot',
+    //storageBucket: 'ukv-bot.appspot.com',
+    //messagingSenderId: '398942949695',
+    //appId: '1:398942949695:web:8b0a0f068a8eeb9ace038a',
+    //measurementId: 'G-WY1LBF766R'
 };
 
 const app = initializeApp(firebaseConfig);

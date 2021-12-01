@@ -11,10 +11,9 @@ const { project } = defineProps([ 'project' ]);
 <Markdown :markdown="markdown"></Markdown>
 
 <div class="logos">
-    <img src="../assets/eu.png" alt="Rahoittaja">
-    <img src="../assets/uia.png" alt="UIA">
-    <img src="../assets/ukv-small.png" alt="UKV">
-    <img src="../assets/metropolia.jpg" alt="Metropolia">
+    <img src="/assets/eu.png" alt="Rahoittaja">
+    <img src="/assets/uia.png" alt="UIA">
+    <img src="/assets/ukv-small.png" alt="UKV">
 </div>
 </template>
 

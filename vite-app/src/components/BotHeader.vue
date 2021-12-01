@@ -5,7 +5,7 @@ const emit = defineEmits([ 'toggleSidebar' ]);
 
 <template>
     <header>
-        <img class="logo" src="../assets/muuvo.jpg" alt="logo">
+        <img class="logo" src="/assets/muuvo.jpg" alt="logo">
 
         <div class="hamburger-cont">
             <font-awesome-icon @click="emit('toggleSidebar')" class="hamburger" color="#444" icon="bars" />
@@ -17,7 +17,7 @@ const emit = defineEmits([ 'toggleSidebar' ]);
                     <router-link :to="{ name: 'project' }">Etusivu</router-link>
                 </li>
                 <li>
-                    <router-link :to="{ name: 'ukv' }">UKV</router-link>
+                    <router-link :to="{ name: 'ukv' }">Taustaa</router-link>
                 </li>
                 <li>
                     <router-link :to="{ name: 'gdpr' }">Tietosuojaseloste</router-link>
