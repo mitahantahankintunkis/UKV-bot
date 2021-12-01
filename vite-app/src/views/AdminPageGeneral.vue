@@ -6,7 +6,7 @@ const emit = defineEmits([ 'download', 'upload', 'load', 'save', 'info' ]);
 const props = defineProps([ 'project' ]);
 const route = useRoute();
 const projectName = route.params.project;
-const customerUrl = `/projekti/${projectName}/`;
+const customerUrl = `/p/${projectName}/`;
 
 
 function todo() {

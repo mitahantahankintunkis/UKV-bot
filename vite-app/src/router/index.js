@@ -23,15 +23,15 @@ const routes = [
         ],
     },
 
-    {
-        path: '/projekti/:project/',
-        component: () => import('../views/BotPage.vue'),
-        children: [
-            { path: '',           name: 'project', component: () => import('../views/BotPageProject.vue'), props: { project: {} }, },
-            { path: 'tietosuoja', name: 'gdpr',    component: () => import('../views/BotPageGDPR.vue'),    props: { project: {} }, },
-            { path: 'ukv',        name: 'ukv',     component: () => import('../views/BotPageUKV.vue'),     props: { project: {} }, },
-        ],
-    },
+    //{
+    //    path: '/projekti/:project/',
+    //    component: () => import('../views/BotPage.vue'),
+    //    children: [
+    //        { path: '',           name: 'project', component: () => import('../views/BotPageProject.vue'), props: { project: {} }, },
+    //        { path: 'tietosuoja', name: 'gdpr',    component: () => import('../views/BotPageGDPR.vue'),    props: { project: {} }, },
+    //        { path: 'ukv',        name: 'ukv',     component: () => import('../views/BotPageUKV.vue'),     props: { project: {} }, },
+    //    ],
+    //},
 
     {
         path: '/admin/:project/',
