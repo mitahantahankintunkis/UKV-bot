@@ -12,7 +12,7 @@ const { project, editmode } = defineProps([ 'project', 'editmode' ]);
 const emit = defineEmits([ 'close', 'askContacts' ]);
 const db = inject('db');
 //const conversationId = ref(nanoid());
-const projectName = route.params.project;
+const projectName = route.params.project || 'dallatten';
 let docRef = ref(null);
 
 let nodes = project.nodes || [];
@@ -180,7 +180,7 @@ reset();
     <div class="chat-header" :style="{ 'border-radius': editmode ? '0' : '0' }">
         <div class="chat-header-left">
             <font-awesome-icon color="#eeeeee" icon="user-circle" />
-            <p class="chat-title">MUUVObotti</p>
+            <p class="chat-title">Dallatten -botti</p>
             <!--
             <p class="chat-title">{{ projectName.toUpperCase() }}botti</p>
             -->

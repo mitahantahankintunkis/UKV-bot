@@ -20,7 +20,7 @@ const sidebarVisible = ref(false);
 
 const db = inject('db');
 const route = useRoute();
-const projectName = route.params.project;
+const projectName = route.params.project || 'dallatten';
 
 const contactCallback = ref(null);
 
@@ -45,7 +45,6 @@ async function getData() {
 
     dataLoaded.value = false;
 
-    const projectName = route.params.project;
     const docRef = doc(db, 'projects', projectName);
     const docSnap = await getDoc(docRef)
         .catch((e) => {

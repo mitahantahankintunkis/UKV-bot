@@ -14,7 +14,7 @@ const routes = [
     },
 
     {
-        path: '/p/:project/',
+        path: '/p/:project?',
         component: () => import('../views/BotPage.vue'),
         children: [
             { path: '',           name: 'project', component: () => import('../views/BotPageProject.vue'), props: { project: {} }, },
