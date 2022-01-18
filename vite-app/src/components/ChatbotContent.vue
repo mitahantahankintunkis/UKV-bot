@@ -180,7 +180,7 @@ reset();
     <div class="chat-header" :style="{ 'border-radius': editmode ? '0' : '0' }">
         <div class="chat-header-left">
             <font-awesome-icon color="#eeeeee" icon="user-circle" />
-            <p class="chat-title">Dallatten -botti</p>
+            <p class="chat-title">Dallattenbotti</p>
             <!--
             <p class="chat-title">{{ projectName.toUpperCase() }}botti</p>
             -->
