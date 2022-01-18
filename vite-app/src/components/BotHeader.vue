@@ -5,7 +5,7 @@ const emit = defineEmits([ 'toggleSidebar' ]);
 
 <template>
     <header>
-        <img class="logo" src="/assets/muuvo.jpg" alt="logo">
+        <img class="logo" src="/assets/dallatten.png" alt="logo">
 
         <div class="hamburger-cont">
             <font-awesome-icon @click="emit('toggleSidebar')" class="hamburger" color="#444" icon="bars" />

@@ -19,14 +19,23 @@ const firebaseConfig = DEV ?
     appId: '1:560183245126:web:a18be65feff81925094d47'
 } :
 {
-    // Muuvobotti
+    //// Muuvobotti
+    //apiKey: "AIzaSyBu0efPHZ9NMLJ5ALArs9EcZVMrZAxCAqo",
+    //authDomain: "ukv-bot.firebaseapp.com",
+    //projectId: "ukv-bot",
+    //storageBucket: "ukv-bot.appspot.com",
+    //messagingSenderId: "398942949695",
+    //appId: "1:398942949695:web:aa8c68b0d3b8a045ce038a",
+    //measurementId: "G-GSKDQE0TXP"
+
+    // Dallatten
     apiKey: "AIzaSyBu0efPHZ9NMLJ5ALArs9EcZVMrZAxCAqo",
     authDomain: "ukv-bot.firebaseapp.com",
     projectId: "ukv-bot",
     storageBucket: "ukv-bot.appspot.com",
     messagingSenderId: "398942949695",
-    appId: "1:398942949695:web:aa8c68b0d3b8a045ce038a",
-    measurementId: "G-GSKDQE0TXP"
+    appId: "1:398942949695:web:9d9aeb20510cd28ece038a",
+    measurementId: "G-L5SK2DE3E8"
 
 
 
